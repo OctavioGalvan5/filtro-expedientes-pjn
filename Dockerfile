@@ -1,13 +1,9 @@
 FROM python:3.11-slim
 
-# Instalar Chromium y ChromeDriver para ejecutar Chrome en el contenedor
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y \
     chromium \
     chromium-driver \
     libpq-dev gcc curl \
-    libglib2.0-0 \
-    libnss3 \
-    libx11-6 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -19,8 +15,6 @@ COPY main.py database.py pjn_scraper.py ./
 COPY templates/ templates/
 
 ENV DOCKER_ENV=1
-ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
-ENV CHROME_BIN=/usr/bin/chromium
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 

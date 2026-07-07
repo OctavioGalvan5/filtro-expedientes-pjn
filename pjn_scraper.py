@@ -39,9 +39,10 @@ _stop_requested = False
 
 
 def inicializar_navegador(headless=False):
+    from webdriver_manager.core.os_manager import ChromeType
+
     options = Options()
-    # Identificar Docker de forma robusta (variable de entorno o plataforma linux)
-    en_docker = os.environ.get("DOCKER_ENV") in ("1", "true", "True") or not sys.platform.startswith("win")
+    en_docker = os.environ.get("DOCKER_ENV") == "1"
 
     if en_docker or headless:
         log("[INFO] Modo HEADLESS activado" + (" (Docker)" if en_docker else ""))
@@ -51,8 +52,6 @@ def inicializar_navegador(headless=False):
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
-        if en_docker:
-            options.binary_location = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
     else:
         log("[INFO] Modo NORMAL (con ventana visible) activado")
         options.add_argument("--start-maximized")
@@ -64,8 +63,12 @@ def inicializar_navegador(headless=False):
     options.add_experimental_option('useAutomationExtension', False)
 
     if en_docker:
-        chromedriver_path = os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
-        driver = webdriver.Chrome(service=Service(chromedriver_path), options=options)
+        # ChromeDriverManager detecta la versión de Chromium instalada y descarga
+        # el driver correcto, evitando el mismatch de versiones con /usr/bin/chromedriver
+        driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()),
+            options=options,
+        )
     else:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
