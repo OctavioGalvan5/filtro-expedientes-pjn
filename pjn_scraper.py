@@ -65,10 +65,12 @@ def inicializar_navegador(headless=False):
     if en_docker:
         # ChromeDriverManager detecta la versión de Chromium instalada y descarga
         # el driver correcto, evitando el mismatch de versiones con /usr/bin/chromedriver
-        driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()),
-            options=options,
+        service = Service(
+            ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install(),
+            service_args=["--verbose"],
+            log_path="/tmp/chromedriver.log",
         )
+        driver = webdriver.Chrome(service=service, options=options)
     else:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 

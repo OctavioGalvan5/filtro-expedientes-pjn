@@ -174,6 +174,25 @@ async def estado_scraper():
     return r
 
 
+@app.get("/api/chrome-log")
+async def chrome_log():
+    """Devuelve el log verbose de ChromeDriver para diagnosticar crashes."""
+    import subprocess
+    log_path = "/tmp/chromedriver.log"
+    resultado = {}
+    if os.path.exists(log_path):
+        with open(log_path, errors="replace") as f:
+            resultado["chromedriver_log"] = f.read()[-8000:]
+    else:
+        resultado["chromedriver_log"] = "Archivo no encontrado — ejecutá el scraper primero"
+    try:
+        v = subprocess.run(["chromium", "--version"], capture_output=True, text=True, timeout=5)
+        resultado["chromium_version"] = v.stdout.strip() or v.stderr.strip()
+    except Exception as e:
+        resultado["chromium_version"] = f"Error: {e}"
+    return resultado
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)

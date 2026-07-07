@@ -12,6 +12,8 @@ services:
       - PJN_PASSWORD=${PJN_PASSWORD}
     restart: unless-stopped
     shm_size: '256mb'
+    security_opt:
+      - seccomp:unconfined
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
