@@ -40,16 +40,19 @@ _stop_requested = False
 
 def inicializar_navegador(headless=False):
     options = Options()
-    en_docker = os.environ.get("DOCKER_ENV") == "1"
-    selenium_hub = os.environ.get("SELENIUM_HUB_URL", "")
+    # Identificar Docker de forma robusta (variable de entorno o plataforma linux)
+    en_docker = os.environ.get("DOCKER_ENV") in ("1", "true", "True") or not sys.platform.startswith("win")
 
     if en_docker or headless:
-        log("[INFO] Modo HEADLESS activado" + (" (Docker/Remote)" if en_docker else ""))
+        log("[INFO] Modo HEADLESS activado" + (" (Docker)" if en_docker else ""))
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
+        options.add_argument("--disable-setuid-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
         options.add_argument("--window-size=1920,1080")
+        if en_docker:
+            options.binary_location = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
     else:
         log("[INFO] Modo NORMAL (con ventana visible) activado")
         options.add_argument("--start-maximized")
@@ -60,10 +63,9 @@ def inicializar_navegador(headless=False):
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
 
-    if selenium_hub:
-        # En Docker: Chrome corre en contenedor separado (selenium/standalone-chrome)
-        log(f"[INFO] Conectando a Selenium Grid: {selenium_hub}")
-        driver = webdriver.Remote(command_executor=selenium_hub, options=options)
+    if en_docker:
+        chromedriver_path = os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
+        driver = webdriver.Chrome(service=Service(chromedriver_path), options=options)
     else:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
