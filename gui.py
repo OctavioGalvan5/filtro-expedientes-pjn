@@ -108,14 +108,6 @@ class App(ctk.CTk):
         ctk.CTkButton(ff, text="...", width=36,
                       command=self._browse_entrada).grid(row=0, column=2, padx=(4, 10))
 
-        ctk.CTkLabel(ff, text="Excel de salida:").grid(
-            row=1, column=0, padx=(10, 4), pady=6, sticky="w")
-        self.entry_salida = ctk.CTkEntry(ff)
-        self.entry_salida.grid(row=1, column=1, padx=4, pady=6, sticky="ew")
-        self.entry_salida.insert(0, "resultado.xlsx")
-        ctk.CTkButton(ff, text="...", width=36,
-                      command=self._browse_salida).grid(row=1, column=2, padx=(4, 10))
-
         # ── Opciones + botones ───────────────────────────────────────────
         fo = ctk.CTkFrame(tab)
         fo.grid(row=2, column=0, padx=4, pady=2, sticky="ew")
@@ -377,25 +369,17 @@ class App(ctk.CTk):
             self.entry_entrada.delete(0, "end")
             self.entry_entrada.insert(0, path)
 
-    def _browse_salida(self):
-        path = filedialog.asksaveasfilename(
-            defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")])
-        if path:
-            self.entry_salida.delete(0, "end")
-            self.entry_salida.insert(0, path)
-
     def _start(self):
         usuario  = self.entry_usuario.get().strip()
         password = self.entry_password.get().strip()
         entrada  = self.entry_entrada.get().strip()
-        salida   = self.entry_salida.get().strip()
         headless = self.var_headless.get()
 
         if not usuario or not password:
             self._append_log("[Error] Ingresa usuario y contraseña.\n")
             return
-        if not entrada or not salida:
-            self._append_log("[Error] Especifica los archivos de entrada y salida.\n")
+        if not entrada:
+            self._append_log("[Error] Especifica el archivo de entrada.\n")
             return
 
         self.btn_start.configure(state="disabled")
@@ -408,7 +392,7 @@ class App(ctk.CTk):
 
         self._worker_thread = threading.Thread(
             target=self._run_scraper,
-            args=(entrada, salida, usuario, password, headless),
+            args=(entrada, usuario, password, headless),
             daemon=True,
         )
         self._worker_thread.start()
@@ -419,11 +403,10 @@ class App(ctk.CTk):
         self._append_log(
             "\n[GUI] Deteniendo… el expediente actual terminará antes de parar.\n")
 
-    def _run_scraper(self, entrada, salida, usuario, password, headless):
+    def _run_scraper(self, entrada, usuario, password, headless):
         try:
             scraper.ejecutar_desde_excel(
                 archivo_entrada=entrada,
-                archivo_salida=salida,
                 usuario=usuario,
                 password=password,
                 headless=headless,

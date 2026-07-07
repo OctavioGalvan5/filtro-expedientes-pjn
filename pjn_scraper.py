@@ -437,11 +437,11 @@ def _detectar_columnas(ws):
     return col_num, col_anio, col_caratula, encabezados
 
 
-def ejecutar_desde_excel(archivo_entrada, archivo_salida, usuario, password,
+def ejecutar_desde_excel(archivo_entrada, usuario, password,
                          headless=False, on_progreso=None):
     """
-    Lee expedientes de expedientes.xlsx y agrega resultados fila por fila en resultado.xlsx.
-    Usa la BD SQLite para rastrear qué expedientes ya fueron procesados.
+    Lee expedientes de expedientes.xlsx, procesa cada uno y guarda en PostgreSQL.
+    La BD es la única fuente de verdad: no se genera ningún Excel de salida.
     on_progreso(actual, total): callback opcional llamado luego de cada expediente.
     """
     global _stop_requested
@@ -450,38 +450,13 @@ def ejecutar_desde_excel(archivo_entrada, archivo_salida, usuario, password,
     try:
         db.inicializar_db()
 
-        # Leer datos de entrada
         wb_entrada = openpyxl.load_workbook(archivo_entrada)
         ws_entrada = wb_entrada.active
         col_num, col_anio, col_caratula, _ = _detectar_columnas(ws_entrada)
         total = ws_entrada.max_row - 1
 
-        # Preparar archivo de salida Excel
-        if os.path.exists(archivo_salida):
-            log(f"[Excel] '{archivo_salida}' encontrado. Modo REANUDACION.")
-            wb_salida = openpyxl.load_workbook(archivo_salida)
-            ws_salida = wb_salida.active
-            enc_s = {}
-            for c in range(1, ws_salida.max_column + 1):
-                val = ws_salida.cell(1, c).value
-                if val:
-                    enc_s[str(val).lower().strip()] = c
-            col_resultado = enc_s.get("caja se presenta", ws_salida.max_column + 1)
-        else:
-            log(f"[Excel] '{archivo_salida}' no existe. Se creara al procesar el primer expediente.")
-            wb_salida = openpyxl.Workbook()
-            ws_salida = wb_salida.active
-            for c in range(1, ws_entrada.max_column + 1):
-                ws_salida.cell(1, c).value = ws_entrada.cell(1, c).value
-            col_resultado = ws_entrada.max_column + 1
-            ws_salida.cell(1, col_resultado).value = "Caja se presenta"
-            wb_salida.save(archivo_salida)
-
-        # Usar la BD como fuente de verdad de lo ya procesado
         ya_procesados = db.obtener_procesados()
-        log(f"[BD] {len(ya_procesados)} expediente(s) ya procesados seran salteados.")
-
-        procesados_sesion = 0
+        log(f"[BD] {len(ya_procesados)} expediente(s) ya procesados — seran salteados.")
 
         for row_idx in range(2, ws_entrada.max_row + 1):
             if _stop_requested:
@@ -503,9 +478,8 @@ def ejecutar_desde_excel(archivo_entrada, archivo_salida, usuario, password,
                 continue
 
             if (num, anio) in ya_procesados:
-                log("[Saltando] Ya procesado previamente.")
+                log("[Saltando] Ya procesado previamente (en BD).")
                 if on_progreso:
-                    procesados_sesion += 1
                     on_progreso(fila_actual, total)
                 continue
 
@@ -527,28 +501,19 @@ def ejecutar_desde_excel(archivo_entrada, archivo_salida, usuario, password,
                 if driver:
                     driver.quit()
 
-            # Guardar en la BD
             db.guardar_expediente(num, anio, caratula, resultado, participantes)
-
-            # Agregar fila al Excel de salida
-            nueva_fila = ws_salida.max_row + 1
-            for c in range(1, ws_entrada.max_column + 1):
-                ws_salida.cell(nueva_fila, c).value = ws_entrada.cell(row_idx, c).value
-            ws_salida.cell(nueva_fila, col_resultado).value = resultado
-            wb_salida.save(archivo_salida)
 
             if resultado in ("Si", "No"):
                 ya_procesados.add((num, anio))
 
-            procesados_sesion += 1
             if on_progreso:
                 on_progreso(fila_actual, total)
 
-        log(f"[Exito] Proceso completado. Resultado guardado en: {archivo_salida}")
+        log("[Exito] Proceso completado. Todos los resultados estan en PostgreSQL.")
 
     except KeyboardInterrupt:
         print("\n")
-        log("[Interrumpido] Proceso detenido manualmente. El progreso fue guardado.")
+        log("[Interrumpido] Proceso detenido. Progreso guardado en la BD.")
         log("[Interrumpido] La proxima ejecucion retomara desde el ultimo expediente pendiente.")
     except Exception:
         log("[Error] Error en el proceso batch:")
@@ -565,7 +530,6 @@ if __name__ == "__main__":
     # --- Modo batch desde Excel ---
     ejecutar_desde_excel(
         archivo_entrada="expedientes.xlsx",
-        archivo_salida="resultado.xlsx",
         usuario=USER,
         password=PASS,
         headless=False

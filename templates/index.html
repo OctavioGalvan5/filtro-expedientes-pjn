@@ -232,9 +232,9 @@
               <thead class="tbl-head">
                 <tr>
                   <th class="text-left">Número / Año</th>
-                  <th class="text-left">Carátula</th>
+                  <th class="text-left">Actor</th>
+                  <th class="text-left">Demandado</th>
                   <th class="text-center">Resultado</th>
-                  <th class="text-center">Partes</th>
                   <th class="text-center">Abogados</th>
                   <th class="text-left">Analizado</th>
                 </tr>
@@ -244,20 +244,22 @@
                   <tr class="tbl-row cursor-pointer"
                       :class="panelDer?.id === exp.id && 'active'"
                       @click="panelDer = panelDer?.id===exp.id ? null : exp">
-                    <td class="px-4 py-2.5 font-mono text-slate-300 whitespace-nowrap text-xs"
-                        x-text="exp.numero + ' / ' + exp.anio"></td>
-                    <td class="px-4 py-2.5 text-slate-300 max-w-xs">
-                      <span x-text="(exp.caratula||'—').length>58
-                        ? (exp.caratula||'').substring(0,58)+'…'
-                        : (exp.caratula||'—')"></span>
+                    <td class="px-4 py-2.5 whitespace-nowrap">
+                      <div class="font-mono text-slate-300 text-xs" x-text="exp.numero + ' / ' + exp.anio"></div>
+                      <div class="text-slate-600 text-xs mt-0.5 truncate max-w-[140px]"
+                           x-text="(exp.caratula||'').substring(0,40)"></div>
+                    </td>
+                    <td class="px-4 py-2.5 text-slate-300 text-xs">
+                      <span x-text="getParte(exp,'actor')" class="truncate block max-w-[160px]"></span>
+                    </td>
+                    <td class="px-4 py-2.5 text-slate-300 text-xs">
+                      <span x-text="getParte(exp,'demandado')" class="truncate block max-w-[160px]"></span>
                     </td>
                     <td class="px-4 py-2.5 text-center">
                       <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
                             :class="{'badge-si':exp.caja_se_presenta==='Si','badge-no':exp.caja_se_presenta==='No','badge-err':!['Si','No'].includes(exp.caja_se_presenta)}"
                             x-text="exp.caja_se_presenta||'—'"></span>
                     </td>
-                    <td class="px-4 py-2.5 text-center text-slate-400"
-                        x-text="(exp.participantes||[]).length"></td>
                     <td class="px-4 py-2.5 text-center text-slate-400"
                         x-text="(exp.participantes||[]).reduce((s,p)=>s+(p.abogados||[]).length,0)"></td>
                     <td class="px-4 py-2.5 text-slate-500 text-xs font-mono"
@@ -623,6 +625,13 @@ function app() {
       if (this.ordenAb === 'nombre') r = [...r].sort((a,b) => a.nombre.localeCompare(b.nombre, 'es'));
       if (this.ordenAb === 'si')     r = [...r].sort((a,b) => b.si - a.si);
       return r;
+    },
+
+    /* Devuelve el nombre de la primera parte que coincide con el tipo buscado */
+    getParte(exp, tipo) {
+      const p = (exp.participantes||[]).find(p => (p.tipo||'').toLowerCase().includes(tipo));
+      if (!p || !p.nombre) return '—';
+      return p.nombre.length > 32 ? p.nombre.substring(0, 32) + '…' : p.nombre;
     },
   };
 }
