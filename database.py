@@ -51,9 +51,18 @@ def inicializar_db():
             caratula          TEXT,
             caja_se_presenta  TEXT,
             fecha_analisis    TIMESTAMP,
+            jurisdiccion      TEXT,
+            juzgado           TEXT,
+            secretaria        TEXT,
             UNIQUE(numero, anio)
         )
     """)
+
+    # Migración: agrega columnas nuevas si la tabla ya existía sin ellas
+    for col in ("jurisdiccion", "juzgado", "secretaria"):
+        cur.execute(
+            f"ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS {col} TEXT"
+        )
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS pjn_participantes (
@@ -168,7 +177,8 @@ def eliminar_expediente(id: int):
 
 
 def guardar_expediente(numero: str, anio: str, caratula: str,
-                       caja_se_presenta: str, participantes: list = None):
+                       caja_se_presenta: str, participantes: list = None,
+                       jurisdiccion: str = "", juzgado: str = "", secretaria: str = ""):
     """
     Inserta o actualiza un expediente y reemplaza sus participantes/abogados.
     participantes: [{tipo, nombre, abogados:[{nombre, tomo_folio, cuit}]}]
@@ -180,13 +190,18 @@ def guardar_expediente(numero: str, anio: str, caratula: str,
     cur = con.cursor()
 
     cur.execute("""
-        INSERT INTO pjn_expedientes (numero, anio, caratula, caja_se_presenta, fecha_analisis)
-        VALUES (%s, %s, %s, %s, NOW())
+        INSERT INTO pjn_expedientes
+            (numero, anio, caratula, caja_se_presenta, fecha_analisis, jurisdiccion, juzgado, secretaria)
+        VALUES (%s, %s, %s, %s, NOW(), %s, %s, %s)
         ON CONFLICT(numero, anio) DO UPDATE SET
             caratula         = EXCLUDED.caratula,
             caja_se_presenta = EXCLUDED.caja_se_presenta,
-            fecha_analisis   = NOW()
-    """, (str(numero), str(anio), caratula, caja_se_presenta))
+            fecha_analisis   = NOW(),
+            jurisdiccion     = EXCLUDED.jurisdiccion,
+            juzgado          = EXCLUDED.juzgado,
+            secretaria       = EXCLUDED.secretaria
+    """, (str(numero), str(anio), caratula, caja_se_presenta,
+          jurisdiccion or "", juzgado or "", secretaria or ""))
 
     cur.execute(
         "SELECT id FROM pjn_expedientes WHERE numero=%s AND anio=%s",

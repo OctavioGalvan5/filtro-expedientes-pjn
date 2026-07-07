@@ -192,6 +192,30 @@ def _boton_siguiente_habilitado(driver):
         return False
 
 
+def extraer_jurisdiccion_dependencia(driver):
+    """Extrae jurisdicción, juzgado y secretaría del encabezado del expediente."""
+    jurisdiccion = ""
+    juzgado = ""
+    secretaria = ""
+    try:
+        el = driver.find_element(By.XPATH, "//span[contains(@id,'detailCamera')]")
+        jurisdiccion = el.text.strip()
+    except Exception:
+        pass
+    try:
+        el = driver.find_element(By.XPATH, "//span[contains(@id,'detailDependencia')]")
+        dependencia = el.text.strip()
+        if " - " in dependencia:
+            partes = dependencia.split(" - ", 1)
+            juzgado    = partes[0].strip()
+            secretaria = partes[1].strip()
+        else:
+            juzgado = dependencia
+    except Exception:
+        pass
+    return jurisdiccion, juzgado, secretaria
+
+
 def extraer_intervinientes(driver):
     """
     Abre el tab Intervinientes, extrae partes y sus abogados, y vuelve al tab Actuaciones.
@@ -374,6 +398,9 @@ def _buscar_y_procesar(driver, num_expediente, anio_expediente):
         EC.presence_of_element_located((By.ID, "expediente:action-table"))
     )
 
+    jurisdiccion, juzgado, secretaria = extraer_jurisdiccion_dependencia(driver)
+    log(f"[Jurisdiccion] {jurisdiccion} | {juzgado} | {secretaria}")
+
     participantes = extraer_intervinientes(driver)
 
     hallazgos = procesar_tabla_paginada(driver, "expediente:action-table", "Actuaciones")
@@ -402,7 +429,7 @@ def _buscar_y_procesar(driver, num_expediente, anio_expediente):
     else:
         print("\n[Historicas] Frase ya encontrada. Saltando históricas.")
 
-    return len(hallazgos) > 0, participantes
+    return len(hallazgos) > 0, participantes, jurisdiccion, juzgado, secretaria
 
 
 def ejecutar_flujo(usuario, password, headless=False):
@@ -415,7 +442,7 @@ def ejecutar_flujo(usuario, password, headless=False):
         num_expediente = "13000369"
         anio_expediente = "2006"
 
-        encontrado, _ = _buscar_y_procesar(driver, num_expediente, anio_expediente)
+        encontrado, _, _, _, _ = _buscar_y_procesar(driver, num_expediente, anio_expediente)
 
         print("\n" + "=" * 60)
         print("RESUMEN FINAL")
@@ -509,7 +536,7 @@ def ejecutar_desde_excel(archivo_entrada, usuario, password,
             try:
                 driver = inicializar_navegador(headless=headless)
                 _login_y_abrir_formulario(driver, usuario, password)
-                encontrado, participantes = _buscar_y_procesar(driver, num, anio)
+                encontrado, participantes, jurisdiccion, juzgado, secretaria = _buscar_y_procesar(driver, num, anio)
                 resultado = "Si" if encontrado else "No"
                 log(f"[Resultado] Caja se presenta: {resultado}")
             except KeyboardInterrupt:
@@ -517,11 +544,13 @@ def ejecutar_desde_excel(archivo_entrada, usuario, password,
             except Exception:
                 log(f"[Error] Fallo al procesar {num}/{anio}:")
                 traceback.print_exc()
+                jurisdiccion = juzgado = secretaria = ""
             finally:
                 if driver:
                     driver.quit()
 
-            db.guardar_expediente(num, anio, caratula, resultado, participantes)
+            db.guardar_expediente(num, anio, caratula, resultado, participantes,
+                                  jurisdiccion, juzgado, secretaria)
 
             if resultado in ("Si", "No"):
                 ya_procesados.add((num, anio))

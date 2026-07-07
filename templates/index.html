@@ -310,6 +310,21 @@
                   <span class="text-xs text-slate-400 font-mono"
                         x-text="(panelDer?.fecha_analisis||'').substring(0,10)"></span>
                 </div>
+                <!-- Jurisdicción / Juzgado / Secretaría -->
+                <div class="mt-2 space-y-0.5" x-show="panelDer?.jurisdiccion || panelDer?.juzgado">
+                  <div x-show="panelDer?.jurisdiccion" class="flex items-center gap-1.5 text-xs text-slate-400">
+                    <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">Jurisdicción</span>
+                    <span x-text="panelDer?.jurisdiccion"></span>
+                  </div>
+                  <div x-show="panelDer?.juzgado" class="flex items-center gap-1.5 text-xs text-slate-400">
+                    <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">Juzgado</span>
+                    <span x-text="panelDer?.juzgado"></span>
+                  </div>
+                  <div x-show="panelDer?.secretaria" class="flex items-center gap-1.5 text-xs text-slate-400">
+                    <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">Secretaría</span>
+                    <span x-text="panelDer?.secretaria"></span>
+                  </div>
+                </div>
               </div>
               <div class="flex items-center gap-2 ml-3 mt-0.5">
                 <button @click="confirmandoEliminar=true"
