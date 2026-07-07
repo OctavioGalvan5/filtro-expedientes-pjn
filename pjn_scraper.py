@@ -62,9 +62,7 @@ def inicializar_navegador(headless=False):
     options.add_experimental_option('useAutomationExtension', False)
 
     if en_docker:
-        chrome_bin = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
         chromedriver_path = os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
-        options.binary_location = chrome_bin
         driver = webdriver.Chrome(service=Service(chromedriver_path), options=options)
     else:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
