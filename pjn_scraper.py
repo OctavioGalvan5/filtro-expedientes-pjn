@@ -68,7 +68,7 @@ def inicializar_navegador(headless=False):
         service = Service(
             ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install(),
             service_args=["--verbose"],
-            log_path="/tmp/chromedriver.log",
+            log_output="/tmp/chromedriver.log",
         )
         driver = webdriver.Chrome(service=service, options=options)
     else:
