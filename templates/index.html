@@ -209,14 +209,28 @@
              :style="panelDer ? 'width:52%' : 'width:100%'">
 
           <!-- Filtros -->
-          <div class="flex items-center gap-2.5 px-4 py-2.5 border-b border-slate-200 flex-shrink-0" style="background:#f8fafc">
-            <select x-model="filtroRes" class="inp">
-              <option value="todos">Todos los resultados</option>
-              <option value="Si">✓  Se presenta</option>
-              <option value="No">✗  No se presenta</option>
-              <option value="error">⚠  Error / Pendiente</option>
-            </select>
-            <div class="relative flex-1">
+          <div class="flex flex-col gap-2 px-4 py-2.5 border-b border-slate-200 flex-shrink-0" style="background:#f8fafc">
+            <div class="flex items-center gap-2.5">
+              <select x-model="filtroRes" class="inp">
+                <option value="todos">Todos los resultados</option>
+                <option value="Si">✓  Se presenta</option>
+                <option value="No">✗  No se presenta</option>
+                <option value="error">⚠  Error / Pendiente</option>
+              </select>
+              <select x-model="filtroJuzgado" class="inp flex-1">
+                <option value="">Todos los juzgados</option>
+                <template x-for="j in juzgadosUnicos" :key="j">
+                  <option :value="j" x-text="j"></option>
+                </template>
+              </select>
+              <select x-model="filtroSecretaria" class="inp flex-1">
+                <option value="">Todas las secretarías</option>
+                <template x-for="s in secretariasUnicas" :key="s">
+                  <option :value="s" x-text="s"></option>
+                </template>
+              </select>
+            </div>
+            <div class="relative">
               <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -611,6 +625,8 @@ function app() {
     // Expedientes
     filtroRes: 'todos',
     filtroTxt: '',
+    filtroJuzgado: '',
+    filtroSecretaria: '',
     confirmandoEliminar: false,
 
     // Abogados
@@ -636,6 +652,16 @@ function app() {
       this.cargando = false;
     },
 
+    /* ── Valores únicos para dropdowns ── */
+    get juzgadosUnicos() {
+      const s = new Set(this.expedientes.map(e => e.juzgado).filter(Boolean));
+      return [...s].sort();
+    },
+    get secretariasUnicas() {
+      const s = new Set(this.expedientes.map(e => e.secretaria).filter(Boolean));
+      return [...s].sort();
+    },
+
     /* ── Expedientes filtrados ── */
     get expedientesFiltrados() {
       let r = this.expedientes;
@@ -643,10 +669,14 @@ function app() {
         r = r.filter(e => e.caja_se_presenta === this.filtroRes);
       else if (this.filtroRes === 'error')
         r = r.filter(e => !['Si','No'].includes(e.caja_se_presenta));
+      if (this.filtroJuzgado)
+        r = r.filter(e => e.juzgado === this.filtroJuzgado);
+      if (this.filtroSecretaria)
+        r = r.filter(e => e.secretaria === this.filtroSecretaria);
       if (this.filtroTxt) {
         const q = this.filtroTxt.toLowerCase();
         r = r.filter(e => {
-          let h = `${e.numero} ${e.anio} ${e.caratula||''}`.toLowerCase();
+          let h = `${e.numero} ${e.anio} ${e.caratula||''} ${e.juzgado||''} ${e.secretaria||''}`.toLowerCase();
           for (const p of (e.participantes||[])) {
             h += ' ' + (p.nombre||'').toLowerCase();
             for (const ab of (p.abogados||[])) h += ' ' + (ab.nombre||'').toLowerCase();
