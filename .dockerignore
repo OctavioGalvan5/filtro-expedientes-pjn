@@ -1,0 +1,14 @@
+.env
+*.db
+__pycache__/
+*.pyc
+*.pyo
+pjn_scraper.py
+gui.py
+web_app.py
+limpiar_excel.py
+test_conexion.py
+expedientes.xlsx
+resultado.xlsx
+*.pdf
+.git/

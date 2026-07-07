@@ -1,0 +1,22 @@
+# Secretos — NUNCA subir
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+
+# Archivos locales del scraper
+expedientes.xlsx
+resultado.xlsx
+*.pdf
+
+# IDE
+.vscode/
+.idea/
+
+# Sistema
+Thumbs.db
+.DS_Store
