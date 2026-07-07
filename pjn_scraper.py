@@ -49,8 +49,9 @@ def inicializar_navegador(headless=False):
         options.add_argument("--disable-setuid-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
-        options.add_argument("--no-zygote")
         options.add_argument("--window-size=1920,1080")
+        if en_docker:
+            options.binary_location = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
     else:
         log("[INFO] Modo NORMAL (con ventana visible) activado")
         options.add_argument("--start-maximized")
