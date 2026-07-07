@@ -1,13 +1,9 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    chromium \
-    chromium-driver \
-    fonts-liberation \
-    libglib2.0-0 \
-    libnss3 \
-    libx11-6 \
-    libpq-dev gcc curl \
+# Chromium sin --no-install-recommends para que apt traiga todas las libs necesarias
+RUN apt-get update \
+    && apt-get install -y chromium chromium-driver \
+    && apt-get install -y --no-install-recommends libpq-dev gcc curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
