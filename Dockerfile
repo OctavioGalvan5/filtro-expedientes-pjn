@@ -1,9 +1,7 @@
 FROM python:3.11-slim
 
-# Chromium sin --no-install-recommends para que apt traiga todas las libs necesarias
-RUN apt-get update \
-    && apt-get install -y chromium chromium-driver \
-    && apt-get install -y --no-install-recommends libpq-dev gcc curl \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev gcc curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -15,8 +13,6 @@ COPY main.py database.py pjn_scraper.py ./
 COPY templates/ templates/
 
 ENV DOCKER_ENV=1
-ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
-ENV CHROME_BIN=/usr/bin/chromium
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 

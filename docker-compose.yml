@@ -1,4 +1,13 @@
 services:
+
+  chrome:
+    image: selenium/standalone-chrome:4.27.0-20250203
+    shm_size: '2gb'
+    environment:
+      - SE_NODE_MAX_SESSIONS=1
+      - SE_SESSION_REQUEST_TIMEOUT=300
+    restart: unless-stopped
+
   pjn-web:
     build:
       context: .
@@ -8,12 +17,12 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - DOCKER_ENV=1
-      - CHROMEDRIVER_PATH=/usr/bin/chromedriver
-      - CHROME_BIN=/usr/bin/chromium
+      - SELENIUM_HUB_URL=http://chrome:4444/wd/hub
       - PJN_USUARIO=${PJN_USUARIO}
       - PJN_PASSWORD=${PJN_PASSWORD}
+    depends_on:
+      - chrome
     restart: unless-stopped
-    shm_size: '256mb'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
