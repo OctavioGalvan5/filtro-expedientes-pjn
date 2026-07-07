@@ -184,7 +184,15 @@ def guardar_expediente(numero: str, anio: str, caratula: str,
     )
     expediente_id = cur.fetchone()[0]
 
-    # Eliminar participantes y abogados anteriores (ON DELETE CASCADE los borra)
+    # Solo reemplazar participantes si extrajimos datos nuevos.
+    # Si la lista llega vacía (error de inicio de Chrome, login fallido, etc.)
+    # conservamos los que ya estaban guardados de un intento anterior.
+    if not participantes:
+        con.commit()
+        cur.close()
+        con.close()
+        return
+
     cur.execute("DELETE FROM pjn_participantes WHERE expediente_id=%s", (expediente_id,))
 
     for p in participantes:
