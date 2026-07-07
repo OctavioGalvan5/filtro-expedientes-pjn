@@ -157,6 +157,16 @@ def obtener_todos() -> list:
 # ---------------------------------------------------------------------------
 # Escritura
 # ---------------------------------------------------------------------------
+def eliminar_expediente(id: int):
+    """Elimina un expediente y sus participantes/abogados en cascada."""
+    con = _connect()
+    cur = con.cursor()
+    cur.execute("DELETE FROM pjn_expedientes WHERE id=%s", (id,))
+    con.commit()
+    cur.close()
+    con.close()
+
+
 def guardar_expediente(numero: str, anio: str, caratula: str,
                        caja_se_presenta: str, participantes: list = None):
     """

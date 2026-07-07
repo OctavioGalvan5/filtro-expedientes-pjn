@@ -252,7 +252,7 @@
                 <template x-for="exp in expedientesFiltrados" :key="exp.id">
                   <tr class="tbl-row cursor-pointer"
                       :class="panelDer?.id === exp.id && 'active'"
-                      @click="panelDer = panelDer?.id===exp.id ? null : exp">
+                      @click="panelDer = panelDer?.id===exp.id ? null : exp; confirmandoEliminar=false">
                     <td class="px-4 py-2.5 whitespace-nowrap">
                       <div class="font-mono text-slate-300 text-xs" x-text="exp.numero + ' / ' + exp.anio"></div>
                       <div class="text-slate-600 text-xs mt-0.5 truncate max-w-[140px]"
@@ -308,10 +308,42 @@
                         x-text="(panelDer?.fecha_analisis||'').substring(0,10)"></span>
                 </div>
               </div>
-              <button @click="panelDer=null" class="text-slate-600 hover:text-white transition-colors ml-3 mt-0.5">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
+              <div class="flex items-center gap-2 ml-3 mt-0.5">
+                <button @click="confirmandoEliminar=true"
+                        x-show="!confirmandoEliminar"
+                        title="Eliminar expediente"
+                        class="text-slate-600 hover:text-red-400 transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </button>
+                <button @click="panelDer=null;confirmandoEliminar=false"
+                        class="text-slate-600 hover:text-white transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <!-- Confirmación eliminar -->
+            <div x-show="confirmandoEliminar"
+                 class="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+                 style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25)">
+              <svg class="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              </svg>
+              <span class="text-red-300 flex-1">¿Eliminar este expediente permanentemente?</span>
+              <button @click="eliminarExpediente(panelDer.id)"
+                      class="px-2.5 py-1 rounded font-semibold text-white transition-colors"
+                      style="background:#dc2626">
+                Eliminar
+              </button>
+              <button @click="confirmandoEliminar=false"
+                      class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition-colors"
+                      style="background:rgba(255,255,255,.05)">
+                Cancelar
               </button>
             </div>
           </div>
@@ -687,6 +719,9 @@ function app() {
     filtroRepresenta: '',
     ordenAb: 'total',
 
+    // Expedientes
+    confirmandoEliminar: false,
+
     // Scraper
     scraperEst: { corriendo:false, actual:0, total:0, logs:[], excel_subido:false, nombre_excel:null },
     scraperUsuario: '',
@@ -853,6 +888,14 @@ function app() {
       }
       await this.cargarEstadoScraper();
       this._startPoll();
+    },
+
+    async eliminarExpediente(id) {
+      const r = await fetch(`/api/expedientes/${id}`, { method: 'DELETE' });
+      if (!r.ok) { alert('Error al eliminar'); return; }
+      this.panelDer = null;
+      this.confirmandoEliminar = false;
+      await this.cargar();
     },
 
     async detenerScraper() {

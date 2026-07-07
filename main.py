@@ -158,6 +158,12 @@ async def ejecutar(body: _EjecutarBody):
     return {"ok": True}
 
 
+@app.delete("/api/expedientes/{exp_id}")
+async def eliminar_expediente(exp_id: int):
+    db.eliminar_expediente(exp_id)
+    return {"ok": True}
+
+
 @app.post("/api/detener")
 async def detener():
     scraper._stop_requested = True
