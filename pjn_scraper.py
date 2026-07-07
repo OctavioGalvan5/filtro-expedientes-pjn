@@ -46,8 +46,10 @@ def inicializar_navegador(headless=False):
         log("[INFO] Modo HEADLESS activado" + (" (Docker)" if en_docker else ""))
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
+        options.add_argument("--disable-setuid-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
+        options.add_argument("--no-zygote")
         options.add_argument("--window-size=1920,1080")
     else:
         log("[INFO] Modo NORMAL (con ventana visible) activado")
