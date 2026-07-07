@@ -20,56 +20,57 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
   <style>
     [x-cloak]{display:none!important}
-    html,body{height:100%;background:#080e1c;color:#dde3ee;font-family:'Inter',sans-serif}
+    html,body{height:100%;background:#f1f5f9;color:#1e293b;font-family:'Inter',sans-serif}
 
     /* Scrollbar */
     ::-webkit-scrollbar{width:5px;height:5px}
-    ::-webkit-scrollbar-track{background:#0d1527}
-    ::-webkit-scrollbar-thumb{background:#1e3058;border-radius:9999px}
-    ::-webkit-scrollbar-thumb:hover{background:#2a4070}
+    ::-webkit-scrollbar-track{background:#e2e8f0}
+    ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:9999px}
+    ::-webkit-scrollbar-thumb:hover{background:#94a3b8}
 
     /* Badges resultado */
-    .badge-si   {background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.25)}
-    .badge-no   {background:rgba(239,68,68,.12); color:#f87171;border:1px solid rgba(239,68,68,.25)}
-    .badge-err  {background:rgba(234,179,8,.12); color:#facc15;border:1px solid rgba(234,179,8,.25)}
+    .badge-si   {background:rgba(34,197,94,.15);color:#15803d;border:1px solid rgba(34,197,94,.3)}
+    .badge-no   {background:rgba(239,68,68,.12); color:#dc2626;border:1px solid rgba(239,68,68,.25)}
+    .badge-err  {background:rgba(234,179,8,.15); color:#b45309;border:1px solid rgba(234,179,8,.3)}
 
     /* Tipo de parte */
-    .pill-actor    {background:rgba(59,130,246,.18);color:#93c5fd}
-    .pill-demandado{background:rgba(239,68,68,.18); color:#fca5a5}
-    .pill-tercero  {background:rgba(168,85,247,.18);color:#d8b4fe}
-    .pill-otro     {background:rgba(148,163,184,.12);color:#94a3b8}
+    .pill-actor    {background:rgba(59,130,246,.15);color:#1d4ed8}
+    .pill-demandado{background:rgba(239,68,68,.12); color:#dc2626}
+    .pill-tercero  {background:rgba(168,85,247,.12);color:#7e22ce}
+    .pill-otro     {background:rgba(148,163,184,.15);color:#475569}
 
     /* Tabla */
-    .tbl-row{border-bottom:1px solid rgba(255,255,255,.045);transition:background .12s}
-    .tbl-row:hover{background:rgba(255,255,255,.04)}
+    .tbl-row{border-bottom:1px solid rgba(0,0,0,.06);transition:background .12s}
+    .tbl-row:hover{background:rgba(0,0,0,.03)}
     .tbl-row.active{background:rgba(201,165,62,.08);border-left:3px solid #c9a53e}
-    .tbl-head th{background:#0d1527;position:sticky;top:0;z-index:10;
+    .tbl-head th{background:#f8fafc;position:sticky;top:0;z-index:10;
                  font-size:.68rem;font-weight:600;letter-spacing:.07em;
-                 text-transform:uppercase;color:#64748b;padding:.6rem 1rem;
-                 border-bottom:1px solid rgba(255,255,255,.07)}
+                 text-transform:uppercase;color:#94a3b8;padding:.6rem 1rem;
+                 border-bottom:1px solid rgba(0,0,0,.07)}
 
     /* Stat card */
-    .stat-card{background:#0d1527;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:1rem 1.25rem}
+    .stat-card{background:#ffffff;border:1px solid rgba(0,0,0,.07);border-radius:12px;padding:1rem 1.25rem;
+               box-shadow:0 1px 3px rgba(0,0,0,.04)}
     .stat-card .num{font-size:1.65rem;font-weight:700;line-height:1}
-    .stat-card .lbl{font-size:.72rem;color:#64748b;margin-top:.25rem}
+    .stat-card .lbl{font-size:.72rem;color:#94a3b8;margin-top:.25rem}
 
     /* Sidebar nav */
     .nav-btn{display:flex;align-items:center;gap:.6rem;padding:.55rem 1rem;border-radius:8px;
              font-size:.83rem;font-weight:500;color:#64748b;cursor:pointer;transition:all .15s;
              border:none;background:transparent;width:100%}
-    .nav-btn:hover{background:rgba(255,255,255,.05);color:#c9a53e}
-    .nav-btn.active{background:rgba(201,165,62,.12);color:#c9a53e;border:1px solid rgba(201,165,62,.2)}
+    .nav-btn:hover{background:rgba(0,0,0,.04);color:#c9a53e}
+    .nav-btn.active{background:rgba(201,165,62,.1);color:#9e7d25;border:1px solid rgba(201,165,62,.25)}
 
     /* Panel derecho */
-    .detail-panel{border-left:1px solid rgba(255,255,255,.07);background:#090f1e}
+    .detail-panel{border-left:1px solid rgba(0,0,0,.08);background:#ffffff}
 
     @keyframes spin{to{transform:rotate(360deg)}}
     .spinner{animation:spin 1s linear infinite}
 
     /* Input */
-    .inp{background:#0d1527;border:1px solid rgba(255,255,255,.1);border-radius:8px;
-         padding:.45rem .85rem;font-size:.83rem;color:#dde3ee;outline:none;transition:border-color .15s}
-    .inp::placeholder{color:#334155}
+    .inp{background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;
+         padding:.45rem .85rem;font-size:.83rem;color:#1e293b;outline:none;transition:border-color .15s}
+    .inp::placeholder{color:#94a3b8}
     .inp:focus{border-color:#c9a53e}
     select.inp{cursor:pointer}
   </style>
@@ -78,25 +79,25 @@
 <body class="flex h-full overflow-hidden" x-data="app()" x-init="init()" x-cloak>
 
 <!-- ═══════════════════════ SIDEBAR ═══════════════════════════════════════ -->
-<aside class="flex flex-col w-56 flex-shrink-0 border-r border-white/5" style="background:#060c18">
+<aside class="flex flex-col w-56 flex-shrink-0 border-r border-slate-200" style="background:#ffffff">
 
   <!-- Logo -->
-  <div class="px-5 py-5 border-b border-white/5">
+  <div class="px-5 py-5 border-b border-slate-100">
     <div class="flex items-center gap-2.5">
       <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
            style="background:linear-gradient(135deg,#c9a53e,#9e7d25)">
         <span class="text-black font-bold text-sm">⚖</span>
       </div>
       <div>
-        <div class="font-bold text-white text-sm leading-tight">Caja de Abogados</div>
-        <div class="text-xs" style="color:#c9a53e">Salta · PJN Scraper</div>
+        <div class="font-bold text-slate-800 text-sm leading-tight">Caja de Abogados</div>
+        <div class="text-xs font-medium" style="color:#c9a53e">Salta · PJN Scraper</div>
       </div>
     </div>
   </div>
 
   <!-- Navegación -->
   <nav class="flex flex-col gap-1 px-3 py-4 flex-1">
-    <p class="text-xs font-semibold text-slate-600 uppercase tracking-wider px-2 mb-1">Vistas</p>
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-2 mb-1">Vistas</p>
     <button class="nav-btn" :class="vista==='expedientes' && 'active'" @click="vista='expedientes';panelDer=null">
       <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -123,7 +124,7 @@
   </nav>
 
   <!-- Footer sidebar -->
-  <div class="px-3 py-3 border-t border-white/5">
+  <div class="px-3 py-3 border-t border-slate-100">
     <button @click="cargar()"
       class="nav-btn w-full"
       :disabled="cargando">
@@ -140,11 +141,11 @@
 <div class="flex flex-col flex-1 overflow-hidden">
 
   <!-- ── HEADER ──────────────────────────────────────────────────────────── -->
-  <header class="flex items-center justify-between px-6 py-3.5 border-b border-white/5 flex-shrink-0"
-          style="background:#060c18">
+  <header class="flex items-center justify-between px-6 py-3.5 border-b border-slate-200 flex-shrink-0"
+          style="background:#ffffff">
     <div>
-      <h1 class="font-semibold text-white text-base" x-text="vista==='expedientes' ? 'Expedientes analizados' : 'Directorio de Abogados'"></h1>
-      <p class="text-slate-500 text-xs mt-0.5"
+      <h1 class="font-semibold text-slate-800 text-base" x-text="vista==='expedientes' ? 'Expedientes analizados' : 'Directorio de Abogados'"></h1>
+      <p class="text-slate-400 text-xs mt-0.5"
          x-text="vista==='expedientes'
            ? expedientesFiltrados.length + ' expedientes · ' + (stats.total||0) + ' total'
            : abogadosFiltrados.length + ' abogados encontrados'">
@@ -153,42 +154,42 @@
     <!-- Stats resumen en header -->
     <div class="flex items-center gap-5 text-sm">
       <div class="text-center">
-        <div class="font-bold text-white" x-text="stats.si ?? '—'"></div>
+        <div class="font-bold text-slate-800" x-text="stats.si ?? '—'"></div>
         <div class="text-xs text-green-600">Presenta</div>
       </div>
-      <div class="w-px h-6 bg-white/10"></div>
+      <div class="w-px h-6 bg-slate-200"></div>
       <div class="text-center">
-        <div class="font-bold text-white" x-text="stats.no ?? '—'"></div>
-        <div class="text-xs text-red-600">No presenta</div>
+        <div class="font-bold text-slate-800" x-text="stats.no ?? '—'"></div>
+        <div class="text-xs text-red-500">No presenta</div>
       </div>
-      <div class="w-px h-6 bg-white/10"></div>
+      <div class="w-px h-6 bg-slate-200"></div>
       <div class="text-center">
-        <div class="font-bold text-white" x-text="stats.total ?? '—'"></div>
-        <div class="text-xs text-slate-500">Total</div>
+        <div class="font-bold text-slate-800" x-text="stats.total ?? '—'"></div>
+        <div class="text-xs text-slate-400">Total</div>
       </div>
     </div>
   </header>
 
   <!-- ── STATS CARDS ──────────────────────────────────────────────────────── -->
-  <div class="grid grid-cols-4 gap-3 px-5 py-3 border-b border-white/5 flex-shrink-0"
-       style="background:#060c18">
+  <div class="grid grid-cols-4 gap-3 px-5 py-3 border-b border-slate-200 flex-shrink-0"
+       style="background:#f8fafc">
     <div class="stat-card">
-      <div class="num text-white" x-text="stats.total ?? '—'"></div>
+      <div class="num text-slate-800" x-text="stats.total ?? '—'"></div>
       <div class="lbl">Total expedientes</div>
     </div>
-    <div class="stat-card" style="border-color:rgba(34,197,94,.2)">
-      <div class="num text-green-400" x-text="stats.si ?? '—'"></div>
-      <div class="lbl">Caja se presenta · <span class="text-green-700" x-text="(stats.pct_si||0)+'%'"></span></div>
+    <div class="stat-card" style="border-color:rgba(34,197,94,.25)">
+      <div class="num text-green-600" x-text="stats.si ?? '—'"></div>
+      <div class="lbl">Caja se presenta · <span class="text-green-600" x-text="(stats.pct_si||0)+'%'"></span></div>
     </div>
-    <div class="stat-card" style="border-color:rgba(239,68,68,.2)">
-      <div class="num text-red-400" x-text="stats.no ?? '—'"></div>
-      <div class="lbl">No se presenta · <span class="text-red-700" x-text="(stats.pct_no||0)+'%'"></span></div>
+    <div class="stat-card" style="border-color:rgba(239,68,68,.25)">
+      <div class="num text-red-500" x-text="stats.no ?? '—'"></div>
+      <div class="lbl">No se presenta · <span class="text-red-500" x-text="(stats.pct_no||0)+'%'"></span></div>
     </div>
-    <div class="stat-card" x-show="vista==='expedientes'" style="border-color:rgba(234,179,8,.2)">
-      <div class="num text-yellow-400" x-text="stats.error ?? '—'"></div>
+    <div class="stat-card" x-show="vista==='expedientes'" style="border-color:rgba(234,179,8,.25)">
+      <div class="num text-amber-600" x-text="stats.error ?? '—'"></div>
       <div class="lbl">Error / Pendiente</div>
     </div>
-    <div class="stat-card" x-show="vista==='abogados'" style="border-color:rgba(201,165,62,.2)">
+    <div class="stat-card" x-show="vista==='abogados'" style="border-color:rgba(201,165,62,.25)">
       <div class="num" style="color:#c9a53e" x-text="abogadosStats.length"></div>
       <div class="lbl">Abogados únicos</div>
     </div>
@@ -199,7 +200,7 @@
 
     <!-- Spinner global -->
     <div x-show="cargando" class="flex items-center justify-center w-full">
-      <div class="flex flex-col items-center gap-3 text-slate-500">
+      <div class="flex flex-col items-center gap-3 text-slate-400">
         <svg class="w-8 h-8 spinner" fill="none" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity=".2"/>
           <path fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4l-3 3-3-3h4z"/>
@@ -217,7 +218,7 @@
              :style="panelDer ? 'width:52%' : 'width:100%'">
 
           <!-- Filtros -->
-          <div class="flex items-center gap-2.5 px-4 py-2.5 border-b border-white/5 flex-shrink-0" style="background:#080e1c">
+          <div class="flex items-center gap-2.5 px-4 py-2.5 border-b border-slate-200 flex-shrink-0" style="background:#f8fafc">
             <select x-model="filtroRes" class="inp">
               <option value="todos">Todos los resultados</option>
               <option value="Si">✓  Se presenta</option>
@@ -225,7 +226,7 @@
               <option value="error">⚠  Error / Pendiente</option>
             </select>
             <div class="relative flex-1">
-              <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600"
+              <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -255,14 +256,14 @@
                       :class="panelDer?.id === exp.id && 'active'"
                       @click="panelDer = panelDer?.id===exp.id ? null : exp; confirmandoEliminar=false">
                     <td class="px-4 py-2.5 whitespace-nowrap">
-                      <div class="font-mono text-slate-300 text-xs" x-text="exp.numero + ' / ' + exp.anio"></div>
-                      <div class="text-slate-600 text-xs mt-0.5 truncate max-w-[140px]"
+                      <div class="font-mono text-slate-700 text-xs font-semibold" x-text="exp.numero + ' / ' + exp.anio"></div>
+                      <div class="text-slate-400 text-xs mt-0.5 truncate max-w-[140px]"
                            x-text="(exp.caratula||'').substring(0,40)"></div>
                     </td>
-                    <td class="px-4 py-2.5 text-slate-300 text-xs">
+                    <td class="px-4 py-2.5 text-slate-600 text-xs">
                       <span x-text="getParte(exp,'actor')" class="truncate block max-w-[160px]"></span>
                     </td>
-                    <td class="px-4 py-2.5 text-slate-300 text-xs">
+                    <td class="px-4 py-2.5 text-slate-600 text-xs">
                       <span x-text="getParte(exp,'demandado')" class="truncate block max-w-[160px]"></span>
                     </td>
                     <td class="px-4 py-2.5 text-center">
@@ -270,14 +271,14 @@
                             :class="{'badge-si':exp.caja_se_presenta==='Si','badge-no':exp.caja_se_presenta==='No','badge-err':!['Si','No'].includes(exp.caja_se_presenta)}"
                             x-text="exp.caja_se_presenta||'—'"></span>
                     </td>
-                    <td class="px-4 py-2.5 text-center text-slate-400"
+                    <td class="px-4 py-2.5 text-center text-slate-500"
                         x-text="(exp.participantes||[]).reduce((s,p)=>s+(p.abogados||[]).length,0)"></td>
-                    <td class="px-4 py-2.5 text-slate-500 text-xs font-mono"
+                    <td class="px-4 py-2.5 text-slate-400 text-xs font-mono"
                         x-text="(exp.fecha_analisis||'').substring(0,10)"></td>
                     <td class="px-2 py-2.5 text-center" @click.stop>
                       <button @click="panelDer=exp; confirmandoEliminar=true"
                               title="Eliminar"
-                              class="p-1.5 rounded hover:bg-red-900/40 text-slate-700 hover:text-red-400 transition-colors">
+                              class="p-1.5 rounded hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -287,7 +288,7 @@
                   </tr>
                 </template>
                 <tr x-show="expedientesFiltrados.length===0">
-                  <td colspan="7" class="px-4 py-12 text-center text-slate-600 text-sm">
+                  <td colspan="7" class="px-4 py-12 text-center text-slate-400 text-sm">
                     Ningún expediente coincide con el filtro.
                   </td>
                 </tr>
@@ -304,18 +305,18 @@
              x-transition:enter-end="opacity-100 translate-x-0">
 
           <!-- Header panel -->
-          <div class="px-5 py-4 border-b border-white/5 flex-shrink-0">
+          <div class="px-5 py-4 border-b border-slate-100 flex-shrink-0">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
-                <div class="font-mono font-semibold text-white"
+                <div class="font-mono font-bold text-slate-800"
                      x-text="panelDer?.numero + ' / ' + panelDer?.anio"></div>
-                <div class="text-slate-400 text-xs mt-1 leading-snug"
+                <div class="text-slate-500 text-xs mt-1 leading-snug"
                      x-text="panelDer?.caratula"></div>
                 <div class="flex items-center gap-2 mt-2">
                   <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold"
                         :class="{'badge-si':panelDer?.caja_se_presenta==='Si','badge-no':panelDer?.caja_se_presenta==='No','badge-err':!['Si','No'].includes(panelDer?.caja_se_presenta)}"
                         x-text="'Caja: ' + (panelDer?.caja_se_presenta||'—')"></span>
-                  <span class="text-xs text-slate-600 font-mono"
+                  <span class="text-xs text-slate-400 font-mono"
                         x-text="(panelDer?.fecha_analisis||'').substring(0,10)"></span>
                 </div>
               </div>
@@ -323,14 +324,14 @@
                 <button @click="confirmandoEliminar=true"
                         x-show="!confirmandoEliminar"
                         title="Eliminar expediente"
-                        class="text-slate-600 hover:text-red-400 transition-colors">
+                        class="text-slate-300 hover:text-red-500 transition-colors">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                   </svg>
                 </button>
                 <button @click="panelDer=null;confirmandoEliminar=false"
-                        class="text-slate-600 hover:text-white transition-colors">
+                        class="text-slate-400 hover:text-slate-700 transition-colors">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                   </svg>
@@ -340,20 +341,20 @@
             <!-- Confirmación eliminar -->
             <div x-show="confirmandoEliminar"
                  class="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
-                 style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25)">
-              <svg class="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2)">
+              <svg class="w-3.5 h-3.5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
               </svg>
-              <span class="text-red-300 flex-1">¿Eliminar este expediente permanentemente?</span>
+              <span class="text-red-600 flex-1">¿Eliminar este expediente permanentemente?</span>
               <button @click="eliminarExpediente(panelDer.id)"
                       class="px-2.5 py-1 rounded font-semibold text-white transition-colors"
                       style="background:#dc2626">
                 Eliminar
               </button>
               <button @click="confirmandoEliminar=false"
-                      class="px-2.5 py-1 rounded text-slate-400 hover:text-white transition-colors"
-                      style="background:rgba(255,255,255,.05)">
+                      class="px-2.5 py-1 rounded text-slate-500 hover:text-slate-700 transition-colors"
+                      style="background:rgba(0,0,0,.06)">
                 Cancelar
               </button>
             </div>
@@ -361,37 +362,37 @@
 
           <!-- Participantes -->
           <div class="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-            <p class="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               Intervinientes (<span x-text="(panelDer?.participantes||[]).length"></span>)
             </p>
 
             <template x-if="!(panelDer?.participantes||[]).length">
-              <div class="text-center text-slate-600 text-sm py-8">Sin intervinientes registrados</div>
+              <div class="text-center text-slate-400 text-sm py-8">Sin intervinientes registrados</div>
             </template>
 
             <template x-for="parte in (panelDer?.participantes||[])" :key="parte.id">
-              <div class="rounded-xl overflow-hidden border border-white/5" style="background:#0d1527">
+              <div class="rounded-xl overflow-hidden border border-slate-100" style="background:#f8fafc">
                 <div class="px-4 py-3 flex items-center gap-2.5">
                   <span class="px-1.5 py-0.5 rounded text-xs font-bold uppercase"
                         :class="{'pill-actor':(parte.tipo||'').toLowerCase().includes('actor'),'pill-demandado':(parte.tipo||'').toLowerCase().includes('demandado'),'pill-tercero':(parte.tipo||'').toLowerCase().includes('tercero'),'pill-otro':!['actor','demandado','tercero'].some(t=>(parte.tipo||'').toLowerCase().includes(t))}"
                         x-text="parte.tipo||'PARTE'"></span>
-                  <span class="text-white text-sm font-medium" x-text="parte.nombre"></span>
+                  <span class="text-slate-800 text-sm font-medium" x-text="parte.nombre"></span>
                 </div>
                 <!-- Abogados de esta parte -->
-                <div class="border-t border-white/5">
+                <div class="border-t border-slate-100">
                   <template x-if="!(parte.abogados||[]).length">
-                    <div class="px-4 py-2 text-xs text-slate-700 italic">Sin abogados registrados</div>
+                    <div class="px-4 py-2 text-xs text-slate-400 italic">Sin abogados registrados</div>
                   </template>
                   <template x-for="ab in (parte.abogados||[])" :key="ab.id">
-                    <div class="flex items-start gap-3 px-4 py-2.5 border-t border-white/[.04] hover:bg-white/[.025] transition-colors">
-                      <svg class="w-3.5 h-3.5 text-slate-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="flex items-start gap-3 px-4 py-2.5 border-t border-slate-50 hover:bg-slate-50 transition-colors">
+                      <svg class="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                       </svg>
                       <div>
-                        <div class="text-slate-200 text-xs font-medium" x-text="ab.nombre"></div>
+                        <div class="text-slate-700 text-xs font-medium" x-text="ab.nombre"></div>
                         <div class="flex flex-wrap gap-x-3 mt-0.5">
-                          <span x-show="ab.tomo_folio" class="text-xs text-slate-600 font-mono" x-text="'T/F: '+ab.tomo_folio"></span>
-                          <span x-show="ab.cuit" class="text-xs text-slate-600 font-mono" x-text="'CUIT: '+ab.cuit"></span>
+                          <span x-show="ab.tomo_folio" class="text-xs text-slate-400 font-mono" x-text="'T/F: '+ab.tomo_folio"></span>
+                          <span x-show="ab.cuit" class="text-xs text-slate-400 font-mono" x-text="'CUIT: '+ab.cuit"></span>
                         </div>
                       </div>
                     </div>
@@ -414,10 +415,10 @@
              :style="panelDer ? 'width:48%' : 'width:100%'">
 
           <!-- Filtros -->
-          <div class="flex flex-col gap-2 px-4 py-2.5 border-b border-white/5 flex-shrink-0" style="background:#080e1c">
+          <div class="flex flex-col gap-2 px-4 py-2.5 border-b border-slate-200 flex-shrink-0" style="background:#f8fafc">
             <div class="flex items-center gap-2.5">
               <div class="relative flex-1">
-                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600"
+                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -432,7 +433,7 @@
               </select>
             </div>
             <div class="relative">
-              <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600"
+              <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -441,7 +442,7 @@
                      placeholder="Filtrar por parte representada (ej: ARCA, García…)"/>
               <button x-show="filtroRepresenta"
                       @click="filtroRepresenta=''"
-                      class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
+                      class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -468,29 +469,29 @@
                       :class="panelDer?.nombre===ab.nombre && 'active'"
                       @click="panelDer = panelDer?.nombre===ab.nombre ? null : ab">
                     <td class="px-4 py-2.5">
-                      <div class="font-medium text-slate-200 text-sm" x-text="ab.nombre"></div>
-                      <div x-show="ab.tomo_folio" class="text-xs text-slate-600 font-mono mt-0.5" x-text="'T/F: '+ab.tomo_folio"></div>
+                      <div class="font-medium text-slate-700 text-sm" x-text="ab.nombre"></div>
+                      <div x-show="ab.tomo_folio" class="text-xs text-slate-400 font-mono mt-0.5" x-text="'T/F: '+ab.tomo_folio"></div>
                     </td>
-                    <td class="px-4 py-2.5 text-xs text-slate-500 font-mono" x-text="ab.cuit||'—'"></td>
+                    <td class="px-4 py-2.5 text-xs text-slate-400 font-mono" x-text="ab.cuit||'—'"></td>
                     <td class="px-4 py-2.5 text-center">
-                      <span class="font-bold text-white" x-text="ab.total"></span>
+                      <span class="font-bold text-slate-800" x-text="ab.total"></span>
                     </td>
                     <td class="px-4 py-2.5 text-center">
                       <span x-show="ab.si>0" class="px-2 py-0.5 rounded-full text-xs font-semibold badge-si" x-text="ab.si"></span>
-                      <span x-show="ab.si===0" class="text-slate-700">—</span>
+                      <span x-show="ab.si===0" class="text-slate-300">—</span>
                     </td>
                     <td class="px-4 py-2.5 text-center">
                       <span x-show="ab.no>0" class="px-2 py-0.5 rounded-full text-xs font-semibold badge-no" x-text="ab.no"></span>
-                      <span x-show="ab.no===0" class="text-slate-700">—</span>
+                      <span x-show="ab.no===0" class="text-slate-300">—</span>
                     </td>
                     <td class="px-4 py-2.5 text-center">
                       <span x-show="ab.error>0" class="px-2 py-0.5 rounded-full text-xs font-semibold badge-err" x-text="ab.error"></span>
-                      <span x-show="ab.error===0" class="text-slate-700">—</span>
+                      <span x-show="ab.error===0" class="text-slate-300">—</span>
                     </td>
                   </tr>
                 </template>
                 <tr x-show="abogadosFiltrados.length===0">
-                  <td colspan="6" class="px-4 py-12 text-center text-slate-600 text-sm">
+                  <td colspan="6" class="px-4 py-12 text-center text-slate-400 text-sm">
                     No hay abogados registrados aún.
                   </td>
                 </tr>
@@ -507,37 +508,37 @@
              x-transition:enter-end="opacity-100 translate-x-0">
 
           <!-- Header -->
-          <div class="px-5 py-4 border-b border-white/5 flex-shrink-0">
+          <div class="px-5 py-4 border-b border-slate-100 flex-shrink-0">
             <div class="flex items-start justify-between">
               <div class="flex-1">
-                <div class="font-semibold text-white" x-text="panelDer?.nombre"></div>
-                <div class="flex items-center gap-3 mt-1 text-xs text-slate-500 font-mono">
+                <div class="font-semibold text-slate-800" x-text="panelDer?.nombre"></div>
+                <div class="flex items-center gap-3 mt-1 text-xs text-slate-400 font-mono">
                   <span x-show="panelDer?.cuit" x-text="'CUIT: '+panelDer?.cuit"></span>
                   <span x-show="panelDer?.tomo_folio" x-text="'T/F: '+panelDer?.tomo_folio"></span>
                 </div>
                 <!-- Mini stats del abogado -->
                 <div class="flex items-center gap-4 mt-3">
                   <div class="text-center">
-                    <div class="font-bold text-white text-lg" x-text="panelDer?.total"></div>
-                    <div class="text-xs text-slate-600">Total</div>
+                    <div class="font-bold text-slate-800 text-lg" x-text="panelDer?.total"></div>
+                    <div class="text-xs text-slate-400">Total</div>
                   </div>
                   <div class="text-center">
-                    <div class="font-bold text-green-400 text-lg" x-text="panelDer?.si"></div>
-                    <div class="text-xs text-green-800">Presenta</div>
+                    <div class="font-bold text-green-600 text-lg" x-text="panelDer?.si"></div>
+                    <div class="text-xs text-green-600">Presenta</div>
                   </div>
                   <div class="text-center">
-                    <div class="font-bold text-red-400 text-lg" x-text="panelDer?.no"></div>
-                    <div class="text-xs text-red-800">No presenta</div>
+                    <div class="font-bold text-red-500 text-lg" x-text="panelDer?.no"></div>
+                    <div class="text-xs text-red-500">No presenta</div>
                   </div>
                   <template x-if="panelDer?.error>0">
                     <div class="text-center">
-                      <div class="font-bold text-yellow-400 text-lg" x-text="panelDer?.error"></div>
-                      <div class="text-xs text-yellow-800">Error</div>
+                      <div class="font-bold text-amber-600 text-lg" x-text="panelDer?.error"></div>
+                      <div class="text-xs text-amber-600">Error</div>
                     </div>
                   </template>
                 </div>
               </div>
-              <button @click="panelDer=null" class="text-slate-600 hover:text-white transition-colors ml-3">
+              <button @click="panelDer=null" class="text-slate-400 hover:text-slate-700 transition-colors ml-3">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -559,9 +560,9 @@
               <tbody>
                 <template x-for="item in (panelDer?.expedientes||[])" :key="item.exp.id">
                   <tr class="tbl-row">
-                    <td class="px-4 py-2.5 font-mono text-slate-300 text-xs whitespace-nowrap"
+                    <td class="px-4 py-2.5 font-mono text-slate-700 text-xs whitespace-nowrap font-semibold"
                         x-text="item.exp.numero + ' / ' + item.exp.anio"></td>
-                    <td class="px-4 py-2.5 text-slate-400 text-xs">
+                    <td class="px-4 py-2.5 text-slate-500 text-xs">
                       <span x-text="(item.exp.caratula||'—').length>42
                         ? (item.exp.caratula||'').substring(0,42)+'…'
                         : (item.exp.caratula||'—')"></span>
@@ -570,7 +571,7 @@
                       <span class="px-1.5 py-0.5 rounded text-xs font-bold uppercase mr-1.5"
                             :class="{'pill-actor':(item.parte_tipo||'').toLowerCase().includes('actor'),'pill-demandado':(item.parte_tipo||'').toLowerCase().includes('demandado'),'pill-tercero':(item.parte_tipo||'').toLowerCase().includes('tercero'),'pill-otro':!['actor','demandado','tercero'].some(t=>(item.parte_tipo||'').toLowerCase().includes(t))}"
                             x-text="item.parte_tipo||'PARTE'"></span>
-                      <span class="text-xs text-slate-400" x-text="item.parte_nombre"></span>
+                      <span class="text-xs text-slate-500" x-text="item.parte_nombre"></span>
                     </td>
                     <td class="px-4 py-2.5 text-center">
                       <span class="px-2 py-0.5 rounded-full text-xs font-semibold"
@@ -593,23 +594,23 @@
 
         <!-- Upload Excel -->
         <div>
-          <p class="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Archivo de entrada</p>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Archivo de entrada</p>
           <label for="excel-upload"
             class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-colors"
-            :class="scraperEst.excel_subido ? 'border-gold/40 bg-gold/5' : 'border-white/10 hover:border-white/20'">
-            <svg class="w-5 h-5 flex-shrink-0" :class="scraperEst.excel_subido ? 'text-gold' : 'text-slate-600'"
+            :class="scraperEst.excel_subido ? 'border-gold/40 bg-gold/5' : 'border-slate-200 hover:border-slate-300'">
+            <svg class="w-5 h-5 flex-shrink-0" :class="scraperEst.excel_subido ? 'text-gold' : 'text-slate-400'"
                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium"
-                   :class="scraperEst.excel_subido ? 'text-gold' : 'text-slate-400'"
+                   :class="scraperEst.excel_subido ? 'text-gold' : 'text-slate-500'"
                    x-text="scraperEst.excel_subido ? scraperEst.nombre_excel : 'Subir archivo Excel (.xlsx)'"></div>
-              <div class="text-xs text-slate-600 mt-0.5"
+              <div class="text-xs text-slate-400 mt-0.5"
                    x-text="scraperEst.excel_subido ? 'Clic para reemplazar' : 'Contiene los expedientes a analizar'"></div>
             </div>
-            <span x-show="subiendoExcel" class="text-xs text-slate-500 spinner">⟳</span>
+            <span x-show="subiendoExcel" class="text-xs text-slate-400 spinner">⟳</span>
             <input id="excel-upload" type="file" accept=".xlsx" class="hidden"
                    @change="subirExcel($event)">
           </label>
@@ -617,7 +618,7 @@
 
         <!-- Credenciales -->
         <div>
-          <p class="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Credenciales PJN</p>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Credenciales PJN</p>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="text-xs text-slate-500 mb-1 block">Usuario (CUIT)</label>
@@ -638,7 +639,7 @@
             :disabled="scraperEst.corriendo || !scraperEst.excel_subido || !scraperUsuario || !scraperPassword"
             class="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm transition-all"
             :class="(scraperEst.corriendo || !scraperEst.excel_subido || !scraperUsuario || !scraperPassword)
-              ? 'bg-white/5 text-slate-600 cursor-not-allowed'
+              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
               : 'text-black cursor-pointer'"
             :style="(!scraperEst.corriendo && scraperEst.excel_subido && scraperUsuario && scraperPassword) ? 'background:linear-gradient(135deg,#c9a53e,#9e7d25)' : ''">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -652,8 +653,8 @@
             :disabled="!scraperEst.corriendo"
             class="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm transition-all"
             :class="scraperEst.corriendo
-              ? 'bg-red-900/40 text-red-400 border border-red-800/50 cursor-pointer hover:bg-red-900/60'
-              : 'bg-white/5 text-slate-600 cursor-not-allowed'">
+              ? 'bg-red-50 text-red-600 border border-red-200 cursor-pointer hover:bg-red-100'
+              : 'bg-slate-100 text-slate-400 cursor-not-allowed'">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 10h6v4H9z"/>
@@ -661,7 +662,7 @@
             Detener
           </button>
 
-          <div x-show="scraperEst.corriendo" class="flex items-center gap-2 text-sm text-gold">
+          <div x-show="scraperEst.corriendo" class="flex items-center gap-2 text-sm font-medium" style="color:#c9a53e">
             <svg class="w-4 h-4 spinner" fill="none" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity=".2"/>
               <path fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4l-3 3-3-3h4z"/>
@@ -673,33 +674,33 @@
         <!-- Progreso -->
         <div x-show="scraperEst.total > 0">
           <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs text-slate-500">Progreso</span>
-            <span class="text-xs font-mono text-slate-400"
+            <span class="text-xs text-slate-400">Progreso</span>
+            <span class="text-xs font-mono text-slate-500"
                   x-text="scraperEst.actual + ' / ' + scraperEst.total + ' expedientes'"></span>
           </div>
-          <div class="w-full h-2 rounded-full overflow-hidden" style="background:#0d1527">
+          <div class="w-full h-2 rounded-full overflow-hidden bg-slate-200">
             <div class="h-full rounded-full transition-all duration-500"
                  style="background:linear-gradient(90deg,#c9a53e,#9e7d25)"
                  :style="'width:' + (scraperEst.total > 0 ? Math.round(scraperEst.actual/scraperEst.total*100) : 0) + '%'"></div>
           </div>
-          <div class="text-right text-xs text-slate-600 mt-1"
+          <div class="text-right text-xs text-slate-400 mt-1"
                x-text="scraperEst.total > 0 ? Math.round(scraperEst.actual/scraperEst.total*100) + '%' : ''"></div>
         </div>
 
-        <!-- Log console -->
+        <!-- Log console (se mantiene oscuro por legibilidad) -->
         <div>
-          <p class="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Log</p>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Log</p>
           <div id="log-console"
                class="rounded-xl p-4 overflow-y-auto font-mono text-xs leading-relaxed"
-               style="background:#020508;border:1px solid rgba(255,255,255,.05);height:340px">
+               style="background:#1e293b;border:1px solid #334155;height:340px">
             <template x-if="scraperEst.logs.length === 0">
-              <div class="text-slate-700 italic">Sin actividad aún…</div>
+              <div class="text-slate-500 italic">Sin actividad aún…</div>
             </template>
             <template x-for="(line, i) in scraperEst.logs" :key="i">
               <div x-text="line"
                    :class="line.includes('Error') || line.includes('error') ? 'text-red-400'
                           : line.includes('Exito') || line.includes('Si') ? 'text-green-400'
-                          : line.includes('Saltando') ? 'text-slate-600'
+                          : line.includes('Saltando') ? 'text-slate-500'
                           : 'text-slate-300'"></div>
             </template>
           </div>
@@ -724,14 +725,12 @@ function app() {
     // Expedientes
     filtroRes: 'todos',
     filtroTxt: '',
+    confirmandoEliminar: false,
 
     // Abogados
     filtroAb: '',
     filtroRepresenta: '',
     ordenAb: 'total',
-
-    // Expedientes
-    confirmandoEliminar: false,
 
     // Scraper
     scraperEst: { corriendo:false, actual:0, total:0, logs:[], excel_subido:false, nombre_excel:null },
@@ -840,6 +839,15 @@ function app() {
       return p.nombre.length > 32 ? p.nombre.substring(0, 32) + '…' : p.nombre;
     },
 
+    /* ── Eliminar expediente ── */
+    async eliminarExpediente(id) {
+      const r = await fetch(`/api/expedientes/${id}`, { method: 'DELETE' });
+      if (!r.ok) { alert('Error al eliminar'); return; }
+      this.panelDer = null;
+      this.confirmandoEliminar = false;
+      await this.cargar();
+    },
+
     /* ── Scraper ── */
     async cargarEstadoScraper() {
       try {
@@ -899,14 +907,6 @@ function app() {
       }
       await this.cargarEstadoScraper();
       this._startPoll();
-    },
-
-    async eliminarExpediente(id) {
-      const r = await fetch(`/api/expedientes/${id}`, { method: 'DELETE' });
-      if (!r.ok) { alert('Error al eliminar'); return; }
-      this.panelDer = null;
-      this.confirmandoEliminar = false;
-      await this.cargar();
     },
 
     async detenerScraper() {
