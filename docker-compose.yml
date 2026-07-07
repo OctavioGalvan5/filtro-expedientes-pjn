@@ -6,9 +6,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # En Dokploy: configurar esta variable en el panel de Environment Variables
       - DATABASE_URL=${DATABASE_URL}
+      - DOCKER_ENV=1
+      - CHROMEDRIVER_PATH=/usr/bin/chromedriver
+      - CHROME_BIN=/usr/bin/chromium
+      - PJN_USUARIO=${PJN_USUARIO}
+      - PJN_PASSWORD=${PJN_PASSWORD}
     restart: unless-stopped
+    shm_size: '256mb'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s

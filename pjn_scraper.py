@@ -40,8 +40,10 @@ _stop_requested = False
 
 def inicializar_navegador(headless=False):
     options = Options()
-    if headless:
-        log("[INFO] Modo HEADLESS activado")
+    en_docker = os.environ.get("DOCKER_ENV") == "1"
+
+    if en_docker or headless:
+        log("[INFO] Modo HEADLESS activado" + (" (Docker)" if en_docker else ""))
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
@@ -57,7 +59,14 @@ def inicializar_navegador(headless=False):
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    if en_docker:
+        chrome_bin = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
+        chromedriver_path = os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver")
+        options.binary_location = chrome_bin
+        driver = webdriver.Chrome(service=Service(chromedriver_path), options=options)
+    else:
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
     driver.implicitly_wait(10)
     return driver
 
@@ -216,9 +225,13 @@ def extraer_intervinientes(driver):
                     celdas = tr.find_elements(By.TAG_NAME, "td")
                     if not celdas:
                         continue
-                    nombre_ab  = celdas[0].text.strip() if len(celdas) > 0 else ""
-                    tomo_folio = celdas[1].text.strip() if len(celdas) > 1 else ""
-                    cuit       = celdas[2].text.strip() if len(celdas) > 2 else ""
+                    # col 0 = rol (LETRADO APODERADO, etc.)
+                    # col 1 = nombre del abogado
+                    # col 2 = tomo/folio
+                    # col 3 = CUIT
+                    nombre_ab  = celdas[1].text.strip() if len(celdas) > 1 else ""
+                    tomo_folio = celdas[2].text.strip() if len(celdas) > 2 else ""
+                    cuit       = celdas[3].text.strip() if len(celdas) > 3 else ""
                     if nombre_ab:
                         participante_actual["abogados"].append({
                             "nombre": nombre_ab,

@@ -1,21 +1,32 @@
 FROM python:3.11-slim
 
-WORKDIR /app
-
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    chromium-driver \
+    fonts-liberation \
+    libglib2.0-0 \
+    libnss3 \
+    libx11-6 \
     libpq-dev gcc curl \
     && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
 
 COPY requirements_web.txt .
 RUN pip install --no-cache-dir -r requirements_web.txt
 
-COPY main.py .
-COPY database.py .
+COPY main.py database.py pjn_scraper.py ./
 COPY templates/ templates/
+
+ENV DOCKER_ENV=1
+ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
+ENV CHROME_BIN=/usr/bin/chromium
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

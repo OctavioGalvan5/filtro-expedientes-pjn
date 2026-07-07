@@ -111,6 +111,15 @@
       </svg>
       Por Abogado
     </button>
+    <button class="nav-btn" :class="vista==='scraper' && 'active'" @click="vista='scraper';panelDer=null;cargarEstadoScraper()">
+      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Ejecutar Scraper
+    </button>
   </nav>
 
   <!-- Footer sidebar -->
@@ -361,22 +370,40 @@
         <div class="flex flex-col overflow-hidden transition-all duration-300"
              :style="panelDer ? 'width:48%' : 'width:100%'">
 
-          <!-- Filtro -->
-          <div class="flex items-center gap-2.5 px-4 py-2.5 border-b border-white/5 flex-shrink-0" style="background:#080e1c">
-            <div class="relative flex-1">
+          <!-- Filtros -->
+          <div class="flex flex-col gap-2 px-4 py-2.5 border-b border-white/5 flex-shrink-0" style="background:#080e1c">
+            <div class="flex items-center gap-2.5">
+              <div class="relative flex-1">
+                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input x-model="filtroAb" type="text" class="inp w-full pl-8"
+                       placeholder="Buscar abogado por nombre o CUIT…"/>
+              </div>
+              <select x-model="ordenAb" class="inp">
+                <option value="total">Ordenar: más expedientes</option>
+                <option value="nombre">Ordenar: nombre A-Z</option>
+                <option value="si">Ordenar: más Se Presenta</option>
+              </select>
+            </div>
+            <div class="relative">
               <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600"
                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
               </svg>
-              <input x-model="filtroAb" type="text" class="inp w-full pl-8"
-                     placeholder="Buscar abogado por nombre o CUIT…"/>
+              <input x-model="filtroRepresenta" type="text" class="inp w-full pl-8"
+                     placeholder="Filtrar por parte representada (ej: ARCA, García…)"/>
+              <button x-show="filtroRepresenta"
+                      @click="filtroRepresenta=''"
+                      class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-white transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
             </div>
-            <select x-model="ordenAb" class="inp">
-              <option value="total">Ordenar: más expedientes</option>
-              <option value="nombre">Ordenar: nombre A-Z</option>
-              <option value="si">Ordenar: más Se Presenta</option>
-            </select>
           </div>
 
           <!-- Tabla abogados -->
@@ -517,6 +544,127 @@
       </div>
     </template>
 
+    <!-- ════════ VISTA: SCRAPER ══════════════════════════════════════════════ -->
+    <template x-if="!cargando && vista==='scraper'">
+      <div class="flex flex-col flex-1 overflow-y-auto p-6 gap-5" style="max-width:760px">
+
+        <!-- Upload Excel -->
+        <div>
+          <p class="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Archivo de entrada</p>
+          <label for="excel-upload"
+            class="flex items-center gap-3 px-4 py-3 rounded-xl border-2 border-dashed cursor-pointer transition-colors"
+            :class="scraperEst.excel_subido ? 'border-gold/40 bg-gold/5' : 'border-white/10 hover:border-white/20'">
+            <svg class="w-5 h-5 flex-shrink-0" :class="scraperEst.excel_subido ? 'text-gold' : 'text-slate-600'"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium"
+                   :class="scraperEst.excel_subido ? 'text-gold' : 'text-slate-400'"
+                   x-text="scraperEst.excel_subido ? scraperEst.nombre_excel : 'Subir archivo Excel (.xlsx)'"></div>
+              <div class="text-xs text-slate-600 mt-0.5"
+                   x-text="scraperEst.excel_subido ? 'Clic para reemplazar' : 'Contiene los expedientes a analizar'"></div>
+            </div>
+            <span x-show="subiendoExcel" class="text-xs text-slate-500 spinner">⟳</span>
+            <input id="excel-upload" type="file" accept=".xlsx" class="hidden"
+                   @change="subirExcel($event)">
+          </label>
+        </div>
+
+        <!-- Credenciales -->
+        <div>
+          <p class="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Credenciales PJN</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-500 mb-1 block">Usuario (CUIT)</label>
+              <input x-model="scraperUsuario" type="text" class="inp w-full"
+                     placeholder="Ej: 20286335528" :disabled="scraperEst.corriendo"/>
+            </div>
+            <div>
+              <label class="text-xs text-slate-500 mb-1 block">Contraseña</label>
+              <input x-model="scraperPassword" type="password" class="inp w-full"
+                     placeholder="••••••••" :disabled="scraperEst.corriendo"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controles -->
+        <div class="flex items-center gap-3">
+          <button @click="ejecutarScraper()"
+            :disabled="scraperEst.corriendo || !scraperEst.excel_subido || !scraperUsuario || !scraperPassword"
+            class="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm transition-all"
+            :class="(scraperEst.corriendo || !scraperEst.excel_subido || !scraperUsuario || !scraperPassword)
+              ? 'bg-white/5 text-slate-600 cursor-not-allowed'
+              : 'text-black cursor-pointer'"
+            :style="(!scraperEst.corriendo && scraperEst.excel_subido && scraperUsuario && scraperPassword) ? 'background:linear-gradient(135deg,#c9a53e,#9e7d25)' : ''">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+            </svg>
+            Iniciar scraper
+          </button>
+
+          <button @click="detenerScraper()"
+            :disabled="!scraperEst.corriendo"
+            class="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm transition-all"
+            :class="scraperEst.corriendo
+              ? 'bg-red-900/40 text-red-400 border border-red-800/50 cursor-pointer hover:bg-red-900/60'
+              : 'bg-white/5 text-slate-600 cursor-not-allowed'">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 10h6v4H9z"/>
+            </svg>
+            Detener
+          </button>
+
+          <div x-show="scraperEst.corriendo" class="flex items-center gap-2 text-sm text-gold">
+            <svg class="w-4 h-4 spinner" fill="none" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity=".2"/>
+              <path fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4l-3 3-3-3h4z"/>
+            </svg>
+            Ejecutando…
+          </div>
+        </div>
+
+        <!-- Progreso -->
+        <div x-show="scraperEst.total > 0">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs text-slate-500">Progreso</span>
+            <span class="text-xs font-mono text-slate-400"
+                  x-text="scraperEst.actual + ' / ' + scraperEst.total + ' expedientes'"></span>
+          </div>
+          <div class="w-full h-2 rounded-full overflow-hidden" style="background:#0d1527">
+            <div class="h-full rounded-full transition-all duration-500"
+                 style="background:linear-gradient(90deg,#c9a53e,#9e7d25)"
+                 :style="'width:' + (scraperEst.total > 0 ? Math.round(scraperEst.actual/scraperEst.total*100) : 0) + '%'"></div>
+          </div>
+          <div class="text-right text-xs text-slate-600 mt-1"
+               x-text="scraperEst.total > 0 ? Math.round(scraperEst.actual/scraperEst.total*100) + '%' : ''"></div>
+        </div>
+
+        <!-- Log console -->
+        <div>
+          <p class="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Log</p>
+          <div id="log-console"
+               class="rounded-xl p-4 overflow-y-auto font-mono text-xs leading-relaxed"
+               style="background:#020508;border:1px solid rgba(255,255,255,.05);height:340px">
+            <template x-if="scraperEst.logs.length === 0">
+              <div class="text-slate-700 italic">Sin actividad aún…</div>
+            </template>
+            <template x-for="(line, i) in scraperEst.logs" :key="i">
+              <div x-text="line"
+                   :class="line.includes('Error') || line.includes('error') ? 'text-red-400'
+                          : line.includes('Exito') || line.includes('Si') ? 'text-green-400'
+                          : line.includes('Saltando') ? 'text-slate-600'
+                          : 'text-slate-300'"></div>
+            </template>
+          </div>
+        </div>
+
+      </div>
+    </template>
+
   </div><!-- fin body -->
 </div><!-- fin contenido principal -->
 
@@ -536,7 +684,15 @@ function app() {
 
     // Abogados
     filtroAb: '',
+    filtroRepresenta: '',
     ordenAb: 'total',
+
+    // Scraper
+    scraperEst: { corriendo:false, actual:0, total:0, logs:[], excel_subido:false, nombre_excel:null },
+    scraperUsuario: '',
+    scraperPassword: '',
+    subiendoExcel: false,
+    _pollTimer: null,
 
     /* ── Init ── */
     async init() { await this.cargar(); },
@@ -621,6 +777,10 @@ function app() {
         const q = this.filtroAb.toLowerCase();
         r = r.filter(a => (a.nombre+' '+a.cuit).toLowerCase().includes(q));
       }
+      if (this.filtroRepresenta) {
+        const q = this.filtroRepresenta.toLowerCase();
+        r = r.filter(a => a.expedientes.some(i => (i.parte_nombre||'').toLowerCase().includes(q)));
+      }
       if (this.ordenAb === 'total')  r = [...r].sort((a,b) => b.total - a.total);
       if (this.ordenAb === 'nombre') r = [...r].sort((a,b) => a.nombre.localeCompare(b.nombre, 'es'));
       if (this.ordenAb === 'si')     r = [...r].sort((a,b) => b.si - a.si);
@@ -632,6 +792,72 @@ function app() {
       const p = (exp.participantes||[]).find(p => (p.tipo||'').toLowerCase().includes(tipo));
       if (!p || !p.nombre) return '—';
       return p.nombre.length > 32 ? p.nombre.substring(0, 32) + '…' : p.nombre;
+    },
+
+    /* ── Scraper ── */
+    async cargarEstadoScraper() {
+      try {
+        const r = await fetch('/api/estado-scraper').then(r => r.json());
+        // Cargar defaults de env vars solo la primera vez (campos vacíos)
+        if (!this.scraperUsuario && r.usuario_default) this.scraperUsuario = r.usuario_default;
+        if (!this.scraperPassword && r.password_default) this.scraperPassword = r.password_default;
+        this.scraperEst = r;
+        this._scrollLog();
+      } catch(e) { console.error(e); }
+    },
+
+    _scrollLog() {
+      this.$nextTick(() => {
+        const el = document.getElementById('log-console');
+        if (el) el.scrollTop = el.scrollHeight;
+      });
+    },
+
+    _startPoll() {
+      if (this._pollTimer) return;
+      this._pollTimer = setInterval(async () => {
+        await this.cargarEstadoScraper();
+        if (!this.scraperEst.corriendo) {
+          clearInterval(this._pollTimer);
+          this._pollTimer = null;
+          await this.cargar();
+        }
+      }, 3000);
+    },
+
+    async subirExcel(ev) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      this.subiendoExcel = true;
+      const fd = new FormData();
+      fd.append('archivo', file);
+      try {
+        await fetch('/api/subir-excel', { method: 'POST', body: fd });
+        await this.cargarEstadoScraper();
+      } finally {
+        this.subiendoExcel = false;
+        ev.target.value = '';
+      }
+    },
+
+    async ejecutarScraper() {
+      const r = await fetch('/api/ejecutar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario: this.scraperUsuario, password: this.scraperPassword }),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        alert('Error: ' + (err.detail || r.status));
+        return;
+      }
+      await this.cargarEstadoScraper();
+      this._startPoll();
+    },
+
+    async detenerScraper() {
+      await fetch('/api/detener', { method: 'POST' });
+      await this.cargarEstadoScraper();
     },
   };
 }

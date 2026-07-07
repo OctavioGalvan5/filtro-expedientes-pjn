@@ -3,7 +3,6 @@
 __pycache__/
 *.pyc
 *.pyo
-pjn_scraper.py
 gui.py
 web_app.py
 limpiar_excel.py
@@ -12,3 +11,5 @@ expedientes.xlsx
 resultado.xlsx
 *.pdf
 .git/
+"Dockerfile - copia"
+"docker-compose - copia.yml"
