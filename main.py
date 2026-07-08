@@ -188,9 +188,12 @@ async def exportar(
     juzgado: str = Query(default=""),
     secretaria: str = Query(default=""),
     busqueda: str = Query(default=""),
+    filtro_ab: str = Query(default=""),
+    filtro_representa: str = Query(default=""),
 ):
     expedientes = db.obtener_todos()
 
+    # ── Filtros de expedientes ──────────────────────────────────────────────
     if resultado in ("Si", "No"):
         expedientes = [e for e in expedientes if e.get("caja_se_presenta") == resultado]
     elif resultado == "error":
@@ -236,20 +239,23 @@ async def exportar(
     for e in expedientes:
         res = e.get("caja_se_presenta")
         for parte in e.get("participantes", []):
+            parte_nombre = parte.get("nombre") or ""
             for ab in parte.get("abogados", []):
                 nombre = ab.get("nombre") or "Sin nombre"
                 if nombre not in abogados_map:
                     abogados_map[nombre] = {
-                        "Abogado":          nombre,
-                        "Tomo/Folio":       ab.get("tomo_folio", ""),
-                        "CUIT":             ab.get("cuit", ""),
+                        "Abogado":           nombre,
+                        "Tomo/Folio":        ab.get("tomo_folio", ""),
+                        "CUIT":              ab.get("cuit", ""),
                         "Total Expedientes": 0,
-                        "Se Presenta":      0,
-                        "No Presenta":      0,
-                        "Error/Pendiente":  0,
-                        "_ids":             set(),
+                        "Se Presenta":       0,
+                        "No Presenta":       0,
+                        "Error/Pendiente":   0,
+                        "_ids":              set(),
+                        "_partes":           set(),
                     }
                 entry = abogados_map[nombre]
+                entry["_partes"].add(parte_nombre.lower())
                 if e["id"] not in entry["_ids"]:
                     entry["_ids"].add(e["id"])
                     entry["Total Expedientes"] += 1
@@ -258,9 +264,25 @@ async def exportar(
                     else:                 entry["Error/Pendiente"] += 1
 
     abogados_rows = sorted(
-        [{k: v for k, v in entry.items() if k != "_ids"} for entry in abogados_map.values()],
+        [{k: v for k, v in entry.items() if k not in ("_ids", "_partes")}
+         for entry in abogados_map.values()],
         key=lambda x: -x["Total Expedientes"],
     )
+
+    # ── Filtros de abogados (aplican solo sobre la hoja Abogados) ──────────
+    if filtro_ab:
+        q = filtro_ab.lower()
+        abogados_rows = [
+            r for r in abogados_rows
+            if q in r["Abogado"].lower() or q in (r.get("CUIT") or "").lower()
+        ]
+
+    if filtro_representa:
+        q = filtro_representa.lower()
+        abogados_rows = [
+            r for r in abogados_rows
+            if any(q in pn for pn in abogados_map[r["Abogado"]]["_partes"])
+        ]
 
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:

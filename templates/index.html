@@ -780,8 +780,10 @@ function app() {
     },
 
     exportarAbogados() {
-      // Exporta todos los expedientes/abogados sin filtro de resultado
-      window.location.href = '/api/exportar';
+      const p = new URLSearchParams();
+      if (this.filtroAb)         p.set('filtro_ab', this.filtroAb);
+      if (this.filtroRepresenta) p.set('filtro_representa', this.filtroRepresenta);
+      window.location.href = '/api/exportar?' + p.toString();
     },
 
     /* ── Eliminar expediente ── */
