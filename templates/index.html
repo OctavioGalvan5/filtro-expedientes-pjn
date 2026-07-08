@@ -229,6 +229,16 @@
                   <option :value="s" x-text="s"></option>
                 </template>
               </select>
+              <button @click="exportarExpedientes()"
+                      title="Exportar Excel con los filtros actuales"
+                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 transition-colors"
+                      style="background:rgba(34,197,94,.12);color:#15803d;border:1px solid rgba(34,197,94,.25)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Exportar Excel
+              </button>
             </div>
             <div class="relative">
               <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
@@ -451,6 +461,16 @@
                 <option value="nombre">Ordenar: nombre A-Z</option>
                 <option value="si">Ordenar: más Se Presenta</option>
               </select>
+              <button @click="exportarAbogados()"
+                      title="Exportar lista de abogados a Excel"
+                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 transition-colors"
+                      style="background:rgba(34,197,94,.12);color:#15803d;border:1px solid rgba(34,197,94,.25)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Exportar Excel
+              </button>
             </div>
             <div class="relative">
               <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400"
@@ -747,6 +767,21 @@ function app() {
       const p = (exp.participantes||[]).find(p => (p.tipo||'').toLowerCase().includes(tipo));
       if (!p || !p.nombre) return '—';
       return p.nombre.length > 32 ? p.nombre.substring(0, 32) + '…' : p.nombre;
+    },
+
+    /* ── Exportar a Excel ── */
+    exportarExpedientes() {
+      const p = new URLSearchParams();
+      if (this.filtroRes !== 'todos') p.set('resultado', this.filtroRes);
+      if (this.filtroJuzgado)         p.set('juzgado', this.filtroJuzgado);
+      if (this.filtroSecretaria)      p.set('secretaria', this.filtroSecretaria);
+      if (this.filtroTxt)             p.set('busqueda', this.filtroTxt);
+      window.location.href = '/api/exportar?' + p.toString();
+    },
+
+    exportarAbogados() {
+      // Exporta todos los expedientes/abogados sin filtro de resultado
+      window.location.href = '/api/exportar';
     },
 
     /* ── Eliminar expediente ── */

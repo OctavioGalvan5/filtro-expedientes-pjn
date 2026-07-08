@@ -3,12 +3,14 @@
 FastAPI backend - PJN Scraper Dashboard
 """
 
+import io
 import os
 import sys
 import threading
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import HTMLResponse
+import pandas as pd
+from fastapi import FastAPI, Query, UploadFile, File, HTTPException
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -178,6 +180,99 @@ async def estado_scraper():
     r["usuario_default"] = os.environ.get("PJN_USUARIO", "")
     r["password_default"] = os.environ.get("PJN_PASSWORD", "")
     return r
+
+
+@app.get("/api/exportar")
+async def exportar(
+    resultado: str = Query(default="todos"),
+    juzgado: str = Query(default=""),
+    secretaria: str = Query(default=""),
+    busqueda: str = Query(default=""),
+):
+    expedientes = db.obtener_todos()
+
+    if resultado in ("Si", "No"):
+        expedientes = [e for e in expedientes if e.get("caja_se_presenta") == resultado]
+    elif resultado == "error":
+        expedientes = [e for e in expedientes if e.get("caja_se_presenta") not in ("Si", "No")]
+
+    if juzgado:
+        expedientes = [e for e in expedientes if e.get("juzgado") == juzgado]
+
+    if secretaria:
+        expedientes = [e for e in expedientes if e.get("secretaria") == secretaria]
+
+    if busqueda:
+        q = busqueda.lower()
+        def _matches(e):
+            hay = f"{e.get('numero','')} {e.get('anio','')} {e.get('caratula','')} {e.get('juzgado','')} {e.get('secretaria','')}".lower()
+            for p in e.get("participantes", []):
+                hay += " " + (p.get("nombre") or "").lower()
+                for ab in p.get("abogados", []):
+                    hay += " " + (ab.get("nombre") or "").lower()
+            return q in hay
+        expedientes = [e for e in expedientes if _matches(e)]
+
+    # Hoja 1: Expedientes
+    exptes_rows = []
+    for e in expedientes:
+        partes = e.get("participantes", [])
+        actor     = next((p["nombre"] for p in partes if "actor"     in (p.get("tipo") or "").lower()), "")
+        demandado = next((p["nombre"] for p in partes if "demandado" in (p.get("tipo") or "").lower()), "")
+        exptes_rows.append({
+            "Expediente":    f"{e['numero']}/{e['anio']}",
+            "Carátula":      e.get("caratula", ""),
+            "Resultado":     e.get("caja_se_presenta", ""),
+            "Jurisdicción":  e.get("jurisdiccion", ""),
+            "Juzgado":       e.get("juzgado", ""),
+            "Secretaría":    e.get("secretaria", ""),
+            "Actor":         actor,
+            "Demandado":     demandado,
+            "Fecha Análisis": (e.get("fecha_analisis") or "")[:10],
+        })
+
+    # Hoja 2: Abogados únicos de los expedientes filtrados
+    abogados_map: dict = {}
+    for e in expedientes:
+        res = e.get("caja_se_presenta")
+        for parte in e.get("participantes", []):
+            for ab in parte.get("abogados", []):
+                nombre = ab.get("nombre") or "Sin nombre"
+                if nombre not in abogados_map:
+                    abogados_map[nombre] = {
+                        "Abogado":          nombre,
+                        "Tomo/Folio":       ab.get("tomo_folio", ""),
+                        "CUIT":             ab.get("cuit", ""),
+                        "Total Expedientes": 0,
+                        "Se Presenta":      0,
+                        "No Presenta":      0,
+                        "Error/Pendiente":  0,
+                        "_ids":             set(),
+                    }
+                entry = abogados_map[nombre]
+                if e["id"] not in entry["_ids"]:
+                    entry["_ids"].add(e["id"])
+                    entry["Total Expedientes"] += 1
+                    if res == "Si":       entry["Se Presenta"] += 1
+                    elif res == "No":     entry["No Presenta"] += 1
+                    else:                 entry["Error/Pendiente"] += 1
+
+    abogados_rows = sorted(
+        [{k: v for k, v in entry.items() if k != "_ids"} for entry in abogados_map.values()],
+        key=lambda x: -x["Total Expedientes"],
+    )
+
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        pd.DataFrame(exptes_rows).to_excel(writer, index=False, sheet_name="Expedientes")
+        pd.DataFrame(abogados_rows).to_excel(writer, index=False, sheet_name="Abogados")
+    buf.seek(0)
+
+    return Response(
+        content=buf.read(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="exportacion.xlsx"'},
+    )
 
 
 @app.get("/api/chrome-log")
