@@ -134,6 +134,7 @@ async def ejecutar(body: _EjecutarBody):
         _estado["total"]     = 0
         _estado["logs"]      = []
         scraper._stop_requested = False
+        nombre_excel = _estado.get("nombre_excel") or "expedientes_web.xlsx"
 
     def on_progreso(actual, total):
         with _estado_lock:
@@ -150,6 +151,7 @@ async def ejecutar(body: _EjecutarBody):
                 password=password,
                 headless=True,
                 on_progreso=on_progreso,
+                fuente=nombre_excel,
             )
         finally:
             sys.stdout = old_stdout
@@ -232,6 +234,7 @@ async def exportar(
             "Actor":         actor,
             "Demandado":     demandado,
             "Fecha Análisis": (e.get("fecha_analisis") or "")[:10],
+            "Fuente":        e.get("fuente", "Extractor PJN"),
         })
 
     # Hoja 2: Abogados únicos de los expedientes filtrados

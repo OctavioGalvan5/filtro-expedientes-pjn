@@ -63,6 +63,9 @@ def inicializar_db():
         cur.execute(
             f"ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS {col} TEXT"
         )
+    cur.execute(
+        "ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS fuente TEXT DEFAULT 'Extractor PJN'"
+    )
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS pjn_participantes (
@@ -178,7 +181,8 @@ def eliminar_expediente(id: int):
 
 def guardar_expediente(numero: str, anio: str, caratula: str,
                        caja_se_presenta: str, participantes: list = None,
-                       jurisdiccion: str = "", juzgado: str = "", secretaria: str = ""):
+                       jurisdiccion: str = "", juzgado: str = "", secretaria: str = "",
+                       fuente: str = "Extractor PJN"):
     """
     Inserta o actualiza un expediente y reemplaza sus participantes/abogados.
     participantes: [{tipo, nombre, abogados:[{nombre, tomo_folio, cuit}]}]
@@ -191,17 +195,18 @@ def guardar_expediente(numero: str, anio: str, caratula: str,
 
     cur.execute("""
         INSERT INTO pjn_expedientes
-            (numero, anio, caratula, caja_se_presenta, fecha_analisis, jurisdiccion, juzgado, secretaria)
-        VALUES (%s, %s, %s, %s, NOW(), %s, %s, %s)
+            (numero, anio, caratula, caja_se_presenta, fecha_analisis, jurisdiccion, juzgado, secretaria, fuente)
+        VALUES (%s, %s, %s, %s, NOW(), %s, %s, %s, %s)
         ON CONFLICT(numero, anio) DO UPDATE SET
             caratula         = EXCLUDED.caratula,
             caja_se_presenta = EXCLUDED.caja_se_presenta,
             fecha_analisis   = NOW(),
             jurisdiccion     = EXCLUDED.jurisdiccion,
             juzgado          = EXCLUDED.juzgado,
-            secretaria       = EXCLUDED.secretaria
+            secretaria       = EXCLUDED.secretaria,
+            fuente           = EXCLUDED.fuente
     """, (str(numero), str(anio), caratula, caja_se_presenta,
-          jurisdiccion or "", juzgado or "", secretaria or ""))
+          jurisdiccion or "", juzgado or "", secretaria or "", fuente or "Extractor PJN"))
 
     cur.execute(
         "SELECT id FROM pjn_expedientes WHERE numero=%s AND anio=%s",

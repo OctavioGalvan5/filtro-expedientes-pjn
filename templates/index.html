@@ -261,6 +261,7 @@
                   <th class="text-left">Demandado</th>
                   <th class="text-center">Resultado</th>
                   <th class="text-center">Abogados</th>
+                  <th class="text-left">Fuente</th>
                   <th class="text-left">Analizado</th>
                   <th class="text-center"></th>
                 </tr>
@@ -288,6 +289,8 @@
                     </td>
                     <td class="px-4 py-2.5 text-center text-slate-500"
                         x-text="(exp.participantes||[]).reduce((s,p)=>s+(p.abogados||[]).length,0)"></td>
+                    <td class="px-4 py-2.5 text-slate-400 text-xs truncate max-w-[120px]"
+                        x-text="exp.fuente||'—'"></td>
                     <td class="px-4 py-2.5 text-slate-400 text-xs font-mono"
                         x-text="(exp.fecha_analisis||'').substring(0,10)"></td>
                     <td class="px-2 py-2.5 text-center" @click.stop>
@@ -334,8 +337,8 @@
                   <span class="text-xs text-slate-400 font-mono"
                         x-text="(panelDer?.fecha_analisis||'').substring(0,10)"></span>
                 </div>
-                <!-- Jurisdicción / Juzgado / Secretaría -->
-                <div class="mt-2 space-y-0.5" x-show="panelDer?.jurisdiccion || panelDer?.juzgado">
+                <!-- Jurisdicción / Juzgado / Secretaría / Fuente -->
+                <div class="mt-2 space-y-0.5" x-show="panelDer?.jurisdiccion || panelDer?.juzgado || panelDer?.fuente">
                   <div x-show="panelDer?.jurisdiccion" class="flex items-center gap-1.5 text-xs text-slate-400">
                     <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">Jurisdicción</span>
                     <span x-text="panelDer?.jurisdiccion"></span>
@@ -347,6 +350,10 @@
                   <div x-show="panelDer?.secretaria" class="flex items-center gap-1.5 text-xs text-slate-400">
                     <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">Secretaría</span>
                     <span x-text="panelDer?.secretaria"></span>
+                  </div>
+                  <div x-show="panelDer?.fuente" class="flex items-center gap-1.5 text-xs text-slate-400">
+                    <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">Fuente</span>
+                    <span x-text="panelDer?.fuente"></span>
                   </div>
                 </div>
               </div>
@@ -696,7 +703,7 @@ function app() {
       if (this.filtroTxt) {
         const q = this.filtroTxt.toLowerCase();
         r = r.filter(e => {
-          let h = `${e.numero} ${e.anio} ${e.caratula||''} ${e.juzgado||''} ${e.secretaria||''}`.toLowerCase();
+          let h = `${e.numero} ${e.anio} ${e.caratula||''} ${e.juzgado||''} ${e.secretaria||''} ${e.fuente||''}`.toLowerCase();
           for (const p of (e.participantes||[])) {
             h += ' ' + (p.nombre||'').toLowerCase();
             for (const ab of (p.abogados||[])) h += ' ' + (ab.nombre||'').toLowerCase();

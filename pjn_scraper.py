@@ -485,14 +485,18 @@ def _detectar_columnas(ws):
 
 
 def ejecutar_desde_excel(archivo_entrada, usuario, password,
-                         headless=False, on_progreso=None):
+                         headless=False, on_progreso=None, fuente=None):
     """
     Lee expedientes de expedientes.xlsx, procesa cada uno y guarda en PostgreSQL.
     La BD es la única fuente de verdad: no se genera ningún Excel de salida.
     on_progreso(actual, total): callback opcional llamado luego de cada expediente.
+    fuente: nombre del archivo de origen (si None, se deriva del nombre del archivo).
     """
     global _stop_requested
     _stop_requested = False
+
+    if fuente is None:
+        fuente = os.path.basename(archivo_entrada)
 
     try:
         db.inicializar_db()
@@ -550,7 +554,7 @@ def ejecutar_desde_excel(archivo_entrada, usuario, password,
                     driver.quit()
 
             db.guardar_expediente(num, anio, caratula, resultado, participantes,
-                                  jurisdiccion, juzgado, secretaria)
+                                  jurisdiccion, juzgado, secretaria, fuente)
 
             if resultado in ("Si", "No"):
                 ya_procesados.add((num, anio))
