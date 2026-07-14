@@ -506,9 +506,6 @@ def ejecutar_desde_excel(archivo_entrada, usuario, password,
         col_num, col_anio, col_caratula, _ = _detectar_columnas(ws_entrada)
         total = ws_entrada.max_row - 1
 
-        ya_procesados = db.obtener_procesados()
-        log(f"[BD] {len(ya_procesados)} expediente(s) ya procesados — seran salteados.")
-
         for row_idx in range(2, ws_entrada.max_row + 1):
             if _stop_requested:
                 log("[Detenido] El usuario detuvo el proceso.")
@@ -528,7 +525,7 @@ def ejecutar_desde_excel(archivo_entrada, usuario, password,
                 log("[Saltando] Fila sin numero o año.")
                 continue
 
-            if (num, anio) in ya_procesados:
+            if db.ya_fue_procesado(num, anio):
                 log("[Saltando] Ya procesado previamente (en BD).")
                 if on_progreso:
                     on_progreso(fila_actual, total)
@@ -546,18 +543,17 @@ def ejecutar_desde_excel(archivo_entrada, usuario, password,
             except KeyboardInterrupt:
                 raise
             except Exception:
-                log(f"[Error] Fallo al procesar {num}/{anio}:")
-                traceback.print_exc()
+                log(f"[Error] Fallo al procesar {num}/{anio}:\n{traceback.format_exc()}")
                 jurisdiccion = juzgado = secretaria = ""
             finally:
                 if driver:
                     driver.quit()
 
-            db.guardar_expediente(num, anio, caratula, resultado, participantes,
-                                  jurisdiccion, juzgado, secretaria, fuente)
-
-            if resultado in ("Si", "No"):
-                ya_procesados.add((num, anio))
+            try:
+                db.guardar_expediente(num, anio, caratula, resultado, participantes,
+                                      jurisdiccion, juzgado, secretaria, fuente)
+            except Exception:
+                log(f"[Error] Fallo al guardar en BD {num}/{anio}:\n{traceback.format_exc()}")
 
             if on_progreso:
                 on_progreso(fila_actual, total)
@@ -569,8 +565,7 @@ def ejecutar_desde_excel(archivo_entrada, usuario, password,
         log("[Interrumpido] Proceso detenido. Progreso guardado en la BD.")
         log("[Interrumpido] La proxima ejecucion retomara desde el ultimo expediente pendiente.")
     except Exception:
-        log("[Error] Error en el proceso batch:")
-        traceback.print_exc()
+        log(f"[Error] Error en el proceso batch:\n{traceback.format_exc()}")
 
 
 if __name__ == "__main__":

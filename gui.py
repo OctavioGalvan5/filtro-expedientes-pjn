@@ -46,6 +46,8 @@ class App(ctk.CTk):
 
         self._log_queue: queue.Queue = queue.Queue()
         self._worker_thread: threading.Thread | None = None
+        self._pagina_actual: int = 1
+        self._por_pagina: int = 50
 
         db.inicializar_db()
         self._build_ui()
@@ -149,9 +151,9 @@ class App(ctk.CTk):
     def _build_tab_intervinientes(self):
         tab = self.tabview.tab("👥  Intervinientes")
         tab.columnconfigure(0, weight=1)
-        tab.rowconfigure(1, weight=1)
+        tab.rowconfigure(2, weight=1)
 
-        # ── Toolbar ──────────────────────────────────────────────────────
+        # ── Toolbar fila 0: buscar + acciones ────────────────────────────
         ft = ctk.CTkFrame(tab)
         ft.grid(row=0, column=0, padx=4, pady=(4, 2), sticky="ew")
         ft.columnconfigure(1, weight=1)
@@ -163,10 +165,10 @@ class App(ctk.CTk):
         self.entry_buscar = ctk.CTkEntry(
             ft, placeholder_text="Filtrar por número, año, carátula o nombre...")
         self.entry_buscar.grid(row=0, column=1, padx=4, pady=8, sticky="ew")
-        self.entry_buscar.bind("<Return>", lambda _e: self._actualizar_tree())
+        self.entry_buscar.bind("<Return>", lambda _e: self._buscar())
 
         ctk.CTkButton(ft, text="Buscar", width=80,
-                      command=self._actualizar_tree).grid(
+                      command=self._buscar).grid(
             row=0, column=2, padx=(4, 6), pady=8)
 
         ctk.CTkButton(ft, text="Expandir todo", width=110,
@@ -180,9 +182,25 @@ class App(ctk.CTk):
         self.lbl_total_exp = ctk.CTkLabel(ft, text="")
         self.lbl_total_exp.grid(row=0, column=5, padx=(6, 10))
 
+        # ── Toolbar fila 1: paginación ────────────────────────────────────
+        fp = ctk.CTkFrame(tab)
+        fp.grid(row=1, column=0, padx=4, pady=(0, 2), sticky="ew")
+        fp.columnconfigure(2, weight=1)
+
+        self.btn_anterior = ctk.CTkButton(fp, text="◀  Anterior", width=110,
+                                          command=self._pagina_anterior)
+        self.btn_anterior.grid(row=0, column=0, padx=(10, 6), pady=4)
+
+        self.btn_siguiente = ctk.CTkButton(fp, text="Siguiente  ▶", width=110,
+                                           command=self._pagina_siguiente)
+        self.btn_siguiente.grid(row=0, column=1, padx=(0, 6), pady=4)
+
+        self.lbl_pagina = ctk.CTkLabel(fp, text="")
+        self.lbl_pagina.grid(row=0, column=2, padx=6, pady=4, sticky="w")
+
         # ── Treeview ─────────────────────────────────────────────────────
         frame_tree = ctk.CTkFrame(tab)
-        frame_tree.grid(row=1, column=0, padx=4, pady=(0, 4), sticky="nsew")
+        frame_tree.grid(row=2, column=0, padx=4, pady=(0, 4), sticky="nsew")
         frame_tree.columnconfigure(0, weight=1)
         frame_tree.rowconfigure(0, weight=1)
 
@@ -253,35 +271,50 @@ class App(ctk.CTk):
     # ------------------------------------------------------------------
     # Lógica del árbol
     # ------------------------------------------------------------------
+    def _buscar(self):
+        self._pagina_actual = 1
+        self._actualizar_tree()
+
+    def _pagina_anterior(self):
+        if self._pagina_actual > 1:
+            self._pagina_actual -= 1
+            self._actualizar_tree()
+
+    def _pagina_siguiente(self):
+        self._pagina_actual += 1
+        self._actualizar_tree()
+
     def _actualizar_tree(self):
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        filtro = self.entry_buscar.get().strip().lower()
+        filtro = self.entry_buscar.get().strip()
 
         try:
-            expedientes = db.obtener_todos()
+            expedientes, total = db.obtener_paginados(
+                self._pagina_actual, self._por_pagina, filtro
+            )
         except Exception:
             return
 
-        count = 0
+        total_paginas = max(1, -(-total // self._por_pagina))  # ceil division
+        if self._pagina_actual > total_paginas:
+            self._pagina_actual = total_paginas
+            expedientes, total = db.obtener_paginados(
+                self._pagina_actual, self._por_pagina, filtro
+            )
+
+        self.btn_anterior.configure(state="normal" if self._pagina_actual > 1 else "disabled")
+        self.btn_siguiente.configure(state="normal" if self._pagina_actual < total_paginas else "disabled")
+        self.lbl_pagina.configure(text=f"Página {self._pagina_actual} de {total_paginas}")
+        self.lbl_total_exp.configure(text=f"{total} expediente(s)")
+
         for exp in expedientes:
             num       = exp["numero"]
             anio      = exp["anio"]
             caratula  = exp.get("caratula") or ""
             resultado = exp.get("caja_se_presenta") or "—"
             fecha     = (exp.get("fecha_analisis") or "")[:10]
-
-            # Filtro
-            if filtro:
-                haystack = f"{num} {anio} {caratula}".lower()
-                # También busca en nombres de participantes y abogados
-                for p in exp.get("participantes", []):
-                    haystack += f" {p.get('nombre','')}".lower()
-                    for ab in p.get("abogados", []):
-                        haystack += f" {ab.get('nombre','')}".lower()
-                if filtro not in haystack:
-                    continue
 
             tag_exp = ("exp_si"    if resultado == "Si"
                   else "exp_no"    if resultado == "No"
@@ -340,13 +373,6 @@ class App(ctk.CTk):
                                 values=("Abogado", "", ab.get("tomo_folio", ""), ab.get("cuit", "")),
                                 tags=("abogado",),
                             )
-
-            count += 1
-
-        texto_total = f"{count} expediente(s)"
-        if filtro:
-            texto_total += f"  (filtrado de {len(expedientes)})"
-        self.lbl_total_exp.configure(text=texto_total)
 
     def _expandir_todo(self):
         def _expand(item):

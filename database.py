@@ -97,56 +97,84 @@ def inicializar_db():
 # Consultas de lectura
 # ---------------------------------------------------------------------------
 def ya_fue_procesado(numero: str, anio: str) -> bool:
-    """True si el expediente ya tiene resultado Si o No en la BD."""
+    """True si el expediente ya existe en la BD (con cualquier resultado)."""
     con = _connect()
     cur = con.cursor()
     cur.execute(
-        "SELECT caja_se_presenta FROM pjn_expedientes WHERE numero=%s AND anio=%s",
+        "SELECT 1 FROM pjn_expedientes WHERE numero=%s AND anio=%s",
         (str(numero), str(anio))
     )
     row = cur.fetchone()
     cur.close()
     con.close()
-    return bool(row and row[0] in ("Si", "No"))
+    return row is not None
 
 
 def obtener_procesados() -> set:
-    """Retorna set de (numero, anio) con resultado Si o No."""
+    """Retorna set de (numero, anio) de todos los expedientes ya en la BD."""
     con = _connect()
     cur = con.cursor()
-    cur.execute(
-        "SELECT numero, anio FROM pjn_expedientes WHERE caja_se_presenta IN ('Si','No')"
-    )
+    cur.execute("SELECT numero, anio FROM pjn_expedientes")
     rows = cur.fetchall()
     cur.close()
     con.close()
     return {(r[0], r[1]) for r in rows}
 
 
-def obtener_todos() -> list:
-    """Devuelve todos los expedientes con participantes y abogados anidados."""
+def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "") -> tuple:
+    """
+    Retorna (expedientes, total) para la página dada.
+    expedientes: lista de dicts con participantes y abogados anidados.
+    total: cantidad total de expedientes que coinciden con el filtro.
+    """
     con = _connect()
     cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    expedientes = cur.execute(
-        "SELECT * FROM pjn_expedientes ORDER BY id"
-    ) or cur.fetchall()
-    # fetchall() despues de execute()
-    cur.execute("SELECT * FROM pjn_expedientes ORDER BY id")
+    offset = (pagina - 1) * por_pagina
+
+    if filtro:
+        like = f"%{filtro}%"
+        where = """
+            WHERE e.id IN (
+                SELECT DISTINCT e2.id FROM pjn_expedientes e2
+                LEFT JOIN pjn_participantes p2 ON p2.expediente_id = e2.id
+                LEFT JOIN pjn_abogados a2     ON a2.participante_id = p2.id
+                WHERE e2.numero   ILIKE %s
+                   OR e2.anio     ILIKE %s
+                   OR e2.caratula ILIKE %s
+                   OR p2.nombre   ILIKE %s
+                   OR a2.nombre   ILIKE %s
+            )
+        """
+        params_count = (like, like, like, like, like)
+        params_page  = (like, like, like, like, like, por_pagina, offset)
+    else:
+        where = ""
+        params_count = ()
+        params_page  = (por_pagina, offset)
+
+    cur.execute(f"SELECT COUNT(*) FROM pjn_expedientes e {where}", params_count)
+    total = cur.fetchone()["count"]
+
+    cur.execute(
+        f"SELECT e.* FROM pjn_expedientes e {where} ORDER BY e.id LIMIT %s OFFSET %s",
+        params_page,
+    )
     expedientes = cur.fetchall()
 
+    # Cargar participantes y abogados solo para la página actual
     result = []
     for exp in expedientes:
         exp_dict = dict(exp)
+        if exp_dict.get("fecha_analisis"):
+            exp_dict["fecha_analisis"] = str(exp_dict["fecha_analisis"])
 
         cur.execute(
             "SELECT * FROM pjn_participantes WHERE expediente_id=%s ORDER BY id",
             (exp["id"],)
         )
-        participantes = cur.fetchall()
         exp_dict["participantes"] = []
-
-        for p in participantes:
+        for p in cur.fetchall():
             p_dict = dict(p)
             cur.execute(
                 "SELECT * FROM pjn_abogados WHERE participante_id=%s ORDER BY id",
@@ -155,15 +183,17 @@ def obtener_todos() -> list:
             p_dict["abogados"] = [dict(ab) for ab in cur.fetchall()]
             exp_dict["participantes"].append(p_dict)
 
-        # Convertir timestamp a string para compatibilidad con JSON / Streamlit
-        if exp_dict.get("fecha_analisis"):
-            exp_dict["fecha_analisis"] = str(exp_dict["fecha_analisis"])
-
         result.append(exp_dict)
 
     cur.close()
     con.close()
-    return result
+    return result, total
+
+
+def obtener_todos() -> list:
+    """Devuelve todos los expedientes con participantes y abogados anidados."""
+    expedientes, _ = obtener_paginados(pagina=1, por_pagina=999999)
+    return expedientes
 
 
 # ---------------------------------------------------------------------------
