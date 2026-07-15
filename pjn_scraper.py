@@ -211,13 +211,14 @@ def extraer_fecha_ultima_fila(driver, tabla_id):
 def extraer_datos_inicio(driver, tabla_id):
     """
     Recorre todas las páginas de la tabla en un único pase.
-    Devuelve (fecha_ultima, url_demanda):
-      - fecha_ultima: texto de la fecha en la última fila de la última página
-      - url_demanda: viewer URL del primer ESCRITO INCORPORADO con 'DEMANDA'
-                     en el detalle, o None si no existe
+    Devuelve (fecha_ultima, url_demanda, fecha_demanda):
+      - fecha_ultima:  fecha de la última fila de la última página (más antigua)
+      - url_demanda:   viewer URL del primer ESCRITO con DEMANDA (excluye DESISTE)
+      - fecha_demanda: fecha de esa misma fila de demanda
     """
     url_demanda = None
     fecha_ultima = None
+    fecha_demanda = None
 
     while True:
         WebDriverWait(driver, 20).until(
@@ -239,17 +240,18 @@ def extraer_datos_inicio(driver, tabla_id):
                 if m:
                     fecha_ultima = m.group(0)
 
-                # Buscar viewer URL: tipo contiene ESCRITO, detalle contiene DEMANDA
-                if url_demanda is None:
-                    tipo    = celdas[3].text.strip().upper()
-                    detalle = celdas[4].text.strip().upper()
-                    if "ESCRITO" in tipo and "DEMANDA" in detalle:
-                        for a in celdas[0].find_elements(By.TAG_NAME, "a"):
-                            href = a.get_attribute("href") or ""
-                            if "viewer.seam" in href and "download=true" not in href:
-                                url_demanda = href
-                                log(f"[Demanda] URL encontrada en tabla {tabla_id}.")
-                                break
+                # Buscar demanda: la tabla va de más reciente a más antigua,
+                # por eso seguimos buscando en todas las páginas y pisamos
+                # con cada coincidencia — al final queda la más antigua.
+                tipo    = celdas[3].text.strip().upper()
+                detalle = celdas[4].text.strip().upper()
+                if "ESCRITO" in tipo and "DEMANDA" in detalle and "DESISTE" not in detalle:
+                    for a in celdas[0].find_elements(By.TAG_NAME, "a"):
+                        href = a.get_attribute("href") or ""
+                        if "viewer.seam" in href and "download=true" not in href:
+                            url_demanda = href
+                            fecha_demanda = m.group(0) if m else None
+                            break
             except StaleElementReferenceException:
                 pass
 
@@ -260,7 +262,7 @@ def extraer_datos_inicio(driver, tabla_id):
         driver.find_element(By.XPATH, "//span[@title='Siguiente']").click()
         WebDriverWait(driver, 15).until(EC.staleness_of(primera_fila))
 
-    return fecha_ultima, url_demanda
+    return fecha_ultima, url_demanda, fecha_demanda
 
 
 def _boton_siguiente_habilitado(driver):

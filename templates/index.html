@@ -383,6 +383,10 @@
                     <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">F. Inicio</span>
                     <span class="font-mono" x-text="panelDer?.fecha_inicio"></span>
                   </div>
+                  <div x-show="panelDer?.fecha_demanda" class="flex items-center gap-1.5 text-xs text-slate-400">
+                    <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">F. Demanda</span>
+                    <span class="font-mono" x-text="panelDer?.fecha_demanda"></span>
+                  </div>
                   <div x-show="panelDer?.url_demanda && panelDer?.url_demanda !== 'NINGUNA'"
                        class="flex items-center gap-1.5 text-xs">
                     <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">Demanda</span>
