@@ -263,7 +263,9 @@
                   <th class="text-center">Resultado</th>
                   <th class="text-center">Abogados</th>
                   <th class="text-left">Fuente</th>
-                  <th class="text-left">Analizado</th>
+                  <th class="text-center">Analizado</th>
+                  <th class="text-center">F. Inicio</th>
+                  <th class="text-center">Demanda</th>
                   <th class="text-center"></th>
                 </tr>
               </thead>
@@ -292,8 +294,25 @@
                         x-text="(exp.participantes||[]).reduce((s,p)=>s+(p.abogados||[]).length,0)"></td>
                     <td class="px-4 py-2.5 text-slate-400 text-xs truncate max-w-[120px]"
                         x-text="exp.fuente||'—'"></td>
-                    <td class="px-4 py-2.5 text-slate-400 text-xs font-mono"
+                    <td class="px-4 py-2.5 text-slate-400 text-xs font-mono text-center"
                         x-text="(exp.fecha_analisis||'').substring(0,10)"></td>
+                    <td class="px-4 py-2.5 text-slate-500 text-xs font-mono text-center"
+                        x-text="exp.fecha_inicio || '—'"></td>
+                    <td class="px-2 py-2.5 text-center" @click.stop>
+                      <a x-show="exp.url_demanda && exp.url_demanda !== 'NINGUNA'"
+                         :href="exp.url_demanda" target="_blank"
+                         title="Ver demanda"
+                         class="inline-flex items-center justify-center p-1 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                      </a>
+                      <span x-show="!exp.url_demanda || exp.url_demanda === 'NINGUNA'"
+                            class="text-slate-200 text-xs">—</span>
+                    </td>
                     <td class="px-2 py-2.5 text-center" @click.stop>
                       <button @click="panelDer=exp; confirmandoEliminar=true"
                               title="Eliminar"
@@ -307,7 +326,7 @@
                   </tr>
                 </template>
                 <tr x-show="expedientesPagina.length===0">
-                  <td colspan="7" class="px-4 py-12 text-center text-slate-400 text-sm">
+                  <td colspan="10" class="px-4 py-12 text-center text-slate-400 text-sm">
                     Ningún expediente coincide con el filtro.
                   </td>
                 </tr>
@@ -368,6 +387,24 @@
                   <div x-show="panelDer?.fuente" class="flex items-center gap-1.5 text-xs text-slate-400">
                     <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">Fuente</span>
                     <span x-text="panelDer?.fuente"></span>
+                  </div>
+                  <div x-show="panelDer?.fecha_inicio" class="flex items-center gap-1.5 text-xs text-slate-400">
+                    <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">F. Inicio</span>
+                    <span class="font-mono" x-text="panelDer?.fecha_inicio"></span>
+                  </div>
+                  <div x-show="panelDer?.url_demanda && panelDer?.url_demanda !== 'NINGUNA'"
+                       class="flex items-center gap-1.5 text-xs">
+                    <span class="font-semibold text-slate-500 uppercase tracking-wide" style="font-size:.6rem">Demanda</span>
+                    <a :href="panelDer?.url_demanda" target="_blank"
+                       class="flex items-center gap-1 text-blue-500 hover:text-blue-700 transition-colors">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                      </svg>
+                      Ver documento
+                    </a>
                   </div>
                 </div>
               </div>

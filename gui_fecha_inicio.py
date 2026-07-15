@@ -29,10 +29,14 @@ def log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
 
-def extraer_fecha_inicio_expediente(driver, num, anio):
+def extraer_datos_expediente(driver, num, anio):
     """
-    Busca el expediente, obtiene la fecha de la última fila de actuaciones
-    y de histórica (si existe). Devuelve la fecha más antigua encontrada.
+    Busca el expediente y extrae en un único pase:
+      - fecha_inicio: fecha de la última fila de la última página (la más antigua)
+      - url_demanda: viewer URL del primer ESCRITO INCORPORADO+DEMANDA encontrado
+    Busca primero en actuaciones principales y luego en históricas (si existen),
+    usando históricas como fuente de fecha aún más antigua y de demanda alternativa.
+    Devuelve (fecha_inicio, url_demanda).
     """
     log(f"[Buscando] {num}/{anio}")
 
@@ -53,11 +57,10 @@ def extraer_fecha_inicio_expediente(driver, num, anio):
         EC.presence_of_element_located((By.ID, "expediente:action-table"))
     )
 
-    # Fecha de la última fila de la tabla principal
-    fecha = scraper.extraer_fecha_ultima_fila(driver, "expediente:action-table")
-    log(f"[Actuaciones] Última fecha: {fecha}")
+    fecha, url_demanda = scraper.extraer_datos_inicio(driver, "expediente:action-table")
+    log(f"[Actuaciones] Última fecha: {fecha} | Demanda: {'sí' if url_demanda else 'no'}")
 
-    # Intentar histórica para obtener fecha aún más antigua
+    # Históricas: pueden tener fecha aún más antigua y/o la demanda
     try:
         div_historicas = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, "expediente:btnActuacionesHistoricas"))
@@ -74,27 +77,29 @@ def extraer_fecha_inicio_expediente(driver, num, anio):
         )
         tabla_historicas_id = tabla_en_dialogo.get_attribute("id")
 
-        fecha_hist = scraper.extraer_fecha_ultima_fila(driver, tabla_historicas_id)
+        fecha_hist, url_demanda_hist = scraper.extraer_datos_inicio(driver, tabla_historicas_id)
         if fecha_hist:
             fecha = fecha_hist
             log(f"[Historica] Fecha más antigua: {fecha}")
+        if url_demanda is None and url_demanda_hist:
+            url_demanda = url_demanda_hist
 
     except Exception:
         log("[Historica] No disponible.")
 
-    return fecha
+    return fecha, url_demanda
 
 
 def ejecutar_extraccion(usuario, password, headless, on_progreso=None):
     global _stop_requested
     _stop_requested = False
 
-    pendientes = db.obtener_sin_fecha_inicio()
+    pendientes = db.obtener_pendientes_datos_inicio()
     total = len(pendientes)
-    log(f"[BD] {total} expediente(s) sin fecha_inicio.")
+    log(f"[BD] {total} expediente(s) pendiente(s) de procesar.")
 
     if total == 0:
-        log("[Exito] Todos los expedientes ya tienen fecha_inicio.")
+        log("[Exito] Todos los expedientes ya tienen fecha_inicio y url_demanda.")
         return
 
     for idx, exp in enumerate(pendientes, 1):
@@ -113,13 +118,11 @@ def ejecutar_extraccion(usuario, password, headless, on_progreso=None):
         try:
             driver = scraper.inicializar_navegador(headless=headless)
             scraper._login_y_abrir_formulario(driver, usuario, password)
-            fecha = extraer_fecha_inicio_expediente(driver, num, anio)
+            fecha, url_demanda = extraer_datos_expediente(driver, num, anio)
 
-            if fecha:
-                db.actualizar_fecha_inicio(exp["id"], fecha)
-                log(f"[Guardado] fecha_inicio = {fecha}")
-            else:
-                log("[Advertencia] No se pudo determinar la fecha de inicio.")
+            # url_demanda=None means not found; store 'NINGUNA' so we don't re-check
+            db.actualizar_datos_inicio(exp["id"], fecha, url_demanda or "NINGUNA")
+            log(f"[Guardado] fecha_inicio={fecha} | url_demanda={'encontrada' if url_demanda else 'NINGUNA'}")
 
         except Exception:
             log(f"[Error] Fallo en {num}/{anio}:\n{traceback.format_exc()}")

@@ -69,6 +69,9 @@ def inicializar_db():
     cur.execute(
         "ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS fecha_inicio TEXT"
     )
+    cur.execute(
+        "ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS url_demanda TEXT"
+    )
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS pjn_participantes (
@@ -352,14 +355,15 @@ def obtener_todos() -> list:
 # ---------------------------------------------------------------------------
 # Escritura
 # ---------------------------------------------------------------------------
-def obtener_sin_fecha_inicio() -> list:
-    """Retorna lista de dicts {id, numero, anio, caratula} sin fecha_inicio."""
+def obtener_pendientes_datos_inicio() -> list:
+    """Retorna expedientes sin fecha_inicio o con url_demanda aún no chequeada (NULL)."""
     con = _connect()
     cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("""
         SELECT id, numero, anio, caratula
         FROM pjn_expedientes
         WHERE fecha_inicio IS NULL OR fecha_inicio = ''
+           OR url_demanda IS NULL
         ORDER BY id
     """)
     rows = [dict(r) for r in cur.fetchall()]
@@ -368,13 +372,13 @@ def obtener_sin_fecha_inicio() -> list:
     return rows
 
 
-def actualizar_fecha_inicio(id: int, fecha_inicio: str):
-    """Actualiza solo la fecha_inicio de un expediente por su id."""
+def actualizar_datos_inicio(id: int, fecha_inicio: str, url_demanda: str):
+    """Actualiza fecha_inicio y url_demanda de un expediente por su id."""
     con = _connect()
     cur = con.cursor()
     cur.execute(
-        "UPDATE pjn_expedientes SET fecha_inicio = %s WHERE id = %s",
-        (fecha_inicio, id)
+        "UPDATE pjn_expedientes SET fecha_inicio = %s, url_demanda = %s WHERE id = %s",
+        (fecha_inicio or None, url_demanda, id)
     )
     con.commit()
     cur.close()

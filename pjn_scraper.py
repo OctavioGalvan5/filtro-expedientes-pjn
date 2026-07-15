@@ -5,6 +5,7 @@ Automación con Selenium y Chrome
 """
 
 import os
+import re
 import sys
 import time
 import traceback
@@ -205,6 +206,61 @@ def extraer_fecha_ultima_fila(driver, tabla_id):
     except Exception as e:
         log(f"[FechaInicio] Error extrayendo fecha: {e}")
         return None
+
+
+def extraer_datos_inicio(driver, tabla_id):
+    """
+    Recorre todas las páginas de la tabla en un único pase.
+    Devuelve (fecha_ultima, url_demanda):
+      - fecha_ultima: texto de la fecha en la última fila de la última página
+      - url_demanda: viewer URL del primer ESCRITO INCORPORADO con 'DEMANDA'
+                     en el detalle, o None si no existe
+    """
+    url_demanda = None
+    fecha_ultima = None
+
+    while True:
+        WebDriverWait(driver, 20).until(
+            EC.visibility_of_element_located((By.ID, tabla_id))
+        )
+        filas = driver.find_element(By.ID, tabla_id).find_elements(By.TAG_NAME, "tr")[1:]
+        if not filas:
+            break
+
+        for fila in filas:
+            try:
+                celdas = fila.find_elements(By.TAG_NAME, "td")
+                if len(celdas) < 5:
+                    continue
+
+                # Fecha: extraer solo el patrón DD/MM/YYYY (la celda puede tener label)
+                raw_fecha = celdas[2].text.strip()
+                m = re.search(r'\d{1,2}/\d{1,2}/\d{4}', raw_fecha)
+                if m:
+                    fecha_ultima = m.group(0)
+
+                # Buscar viewer URL: tipo contiene ESCRITO, detalle contiene DEMANDA
+                if url_demanda is None:
+                    tipo    = celdas[3].text.strip().upper()
+                    detalle = celdas[4].text.strip().upper()
+                    if "ESCRITO" in tipo and "DEMANDA" in detalle:
+                        for a in celdas[0].find_elements(By.TAG_NAME, "a"):
+                            href = a.get_attribute("href") or ""
+                            if "viewer.seam" in href and "download=true" not in href:
+                                url_demanda = href
+                                log(f"[Demanda] URL encontrada en tabla {tabla_id}.")
+                                break
+            except StaleElementReferenceException:
+                pass
+
+        if not _boton_siguiente_habilitado(driver):
+            break
+
+        primera_fila = filas[0]
+        driver.find_element(By.XPATH, "//span[@title='Siguiente']").click()
+        WebDriverWait(driver, 15).until(EC.staleness_of(primera_fila))
+
+    return fecha_ultima, url_demanda
 
 
 def _boton_siguiente_habilitado(driver):
