@@ -164,19 +164,31 @@
   <!-- ── STATS CARDS ──────────────────────────────────────────────────────── -->
   <div class="grid grid-cols-4 gap-3 px-5 py-3 border-b border-slate-200 flex-shrink-0"
        style="background:#f8fafc">
-    <div class="stat-card">
+    <div class="stat-card cursor-pointer transition-all hover:shadow-md"
+         :class="filtroRes==='todos' && vista==='expedientes' && 'ring-2 ring-slate-300'"
+         @click="if(vista==='expedientes'){ filtroRes='todos'; aplicarFiltros(); }">
       <div class="num text-slate-800" x-text="stats.total ?? '—'"></div>
       <div class="lbl">Total expedientes</div>
     </div>
-    <div class="stat-card" style="border-color:rgba(34,197,94,.25)">
+    <div class="stat-card cursor-pointer transition-all hover:shadow-md"
+         style="border-color:rgba(34,197,94,.25)"
+         :class="filtroRes==='Si' && 'ring-2 ring-green-400'"
+         @click="if(vista==='expedientes'){ filtroRes = filtroRes==='Si' ? 'todos' : 'Si'; aplicarFiltros(); }">
       <div class="num text-green-600" x-text="stats.si ?? '—'"></div>
       <div class="lbl">Caja se presenta · <span class="text-green-600" x-text="(stats.pct_si||0)+'%'"></span></div>
     </div>
-    <div class="stat-card" style="border-color:rgba(239,68,68,.25)">
+    <div class="stat-card cursor-pointer transition-all hover:shadow-md"
+         style="border-color:rgba(239,68,68,.25)"
+         :class="filtroRes==='No' && 'ring-2 ring-red-400'"
+         @click="if(vista==='expedientes'){ filtroRes = filtroRes==='No' ? 'todos' : 'No'; aplicarFiltros(); }">
       <div class="num text-red-500" x-text="stats.no ?? '—'"></div>
       <div class="lbl">No se presenta · <span class="text-red-500" x-text="(stats.pct_no||0)+'%'"></span></div>
     </div>
-    <div class="stat-card" x-show="vista==='expedientes'" style="border-color:rgba(234,179,8,.25)">
+    <div class="stat-card transition-all"
+         x-show="vista==='expedientes'"
+         style="border-color:rgba(234,179,8,.25)"
+         :class="[stats.error > 0 && 'cursor-pointer hover:shadow-md', filtroRes==='error' && 'ring-2 ring-amber-400']"
+         @click="if(stats.error > 0){ filtroRes = filtroRes==='error' ? 'todos' : 'error'; aplicarFiltros(); }">
       <div class="num text-amber-600" x-text="stats.error ?? '—'"></div>
       <div class="lbl">Error / Pendiente</div>
     </div>
@@ -211,7 +223,8 @@
           <!-- Filtros -->
           <div class="flex flex-col gap-2 px-4 py-2.5 border-b border-slate-200 flex-shrink-0" style="background:#f8fafc">
             <div class="flex items-center gap-2.5">
-              <select x-model="filtroRes" @change="aplicarFiltros()" class="inp">
+              <select x-model="filtroRes" @change="aplicarFiltros()" class="inp"
+                      :class="filtroRes==='error' && 'border-amber-400 bg-amber-50 text-amber-700'">
                 <option value="todos">Todos los resultados</option>
                 <option value="Si">✓  Se presenta</option>
                 <option value="No">✗  No se presenta</option>
