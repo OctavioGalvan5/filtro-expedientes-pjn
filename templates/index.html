@@ -105,7 +105,7 @@
       </svg>
       Expedientes
     </button>
-    <button class="nav-btn" :class="vista==='abogados' && 'active'" @click="vista='abogados';panelDer=null">
+    <button class="nav-btn" :class="vista==='abogados' && 'active'" @click="vista='abogados';panelDer=null;if(!abogados.length)cargarAbogados()">
       <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -138,8 +138,8 @@
       <h1 class="font-semibold text-slate-800 text-base" x-text="vista==='expedientes' ? 'Expedientes analizados' : 'Por Abogado'"></h1>
       <p class="text-slate-400 text-xs mt-0.5"
          x-text="vista==='expedientes'
-           ? expedientesFiltrados.length + ' expedientes · ' + (stats.total||0) + ' total'
-           : abogadosFiltrados.length + ' abogados encontrados'">
+           ? totalExp + ' expedientes · ' + (stats.total||0) + ' total'
+           : abogados.length + ' abogados encontrados'">
       </p>
     </div>
     <!-- Stats resumen en header -->
@@ -181,7 +181,7 @@
       <div class="lbl">Error / Pendiente</div>
     </div>
     <div class="stat-card" x-show="vista==='abogados'" style="border-color:rgba(201,165,62,.25)">
-      <div class="num" style="color:#c9a53e" x-text="abogadosStats.length"></div>
+      <div class="num" style="color:#c9a53e" x-text="abogados.length"></div>
       <div class="lbl">Abogados únicos</div>
     </div>
   </div>
@@ -211,19 +211,19 @@
           <!-- Filtros -->
           <div class="flex flex-col gap-2 px-4 py-2.5 border-b border-slate-200 flex-shrink-0" style="background:#f8fafc">
             <div class="flex items-center gap-2.5">
-              <select x-model="filtroRes" class="inp">
+              <select x-model="filtroRes" @change="aplicarFiltros()" class="inp">
                 <option value="todos">Todos los resultados</option>
                 <option value="Si">✓  Se presenta</option>
                 <option value="No">✗  No se presenta</option>
                 <option value="error">⚠  Error / Pendiente</option>
               </select>
-              <select x-model="filtroJuzgado" class="inp flex-1">
+              <select x-model="filtroJuzgado" @change="aplicarFiltros()" class="inp flex-1">
                 <option value="">Todos los juzgados</option>
                 <template x-for="j in juzgadosUnicos" :key="j">
                   <option :value="j" x-text="j"></option>
                 </template>
               </select>
-              <select x-model="filtroSecretaria" class="inp flex-1">
+              <select x-model="filtroSecretaria" @change="aplicarFiltros()" class="inp flex-1">
                 <option value="">Todas las secretarías</option>
                 <template x-for="s in secretariasUnicas" :key="s">
                   <option :value="s" x-text="s"></option>
@@ -247,7 +247,8 @@
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
               </svg>
               <input x-model="filtroTxt" type="text" class="inp w-full pl-8"
-                     placeholder="Buscar número, carátula, parte, abogado…"/>
+                     placeholder="Buscar número, carátula, parte, abogado…"
+                     @input.debounce.400ms="aplicarFiltros()"/>
             </div>
           </div>
 
@@ -267,7 +268,7 @@
                 </tr>
               </thead>
               <tbody>
-                <template x-for="exp in expedientesFiltrados" :key="exp.id">
+                <template x-for="exp in expedientesPagina" :key="exp.id">
                   <tr class="tbl-row cursor-pointer"
                       :class="panelDer?.id === exp.id && 'active'"
                       @click="panelDer = panelDer?.id===exp.id ? null : exp; confirmandoEliminar=false">
@@ -305,13 +306,26 @@
                     </td>
                   </tr>
                 </template>
-                <tr x-show="expedientesFiltrados.length===0">
+                <tr x-show="expedientesPagina.length===0">
                   <td colspan="7" class="px-4 py-12 text-center text-slate-400 text-sm">
                     Ningún expediente coincide con el filtro.
                   </td>
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <!-- Paginación -->
+          <div class="flex items-center justify-between px-4 py-2 border-t border-slate-200 flex-shrink-0 text-xs text-slate-500" style="background:#f8fafc">
+            <button @click="paginaAnterior()" :disabled="paginaActual <= 1"
+                    class="px-3 py-1 rounded border border-slate-200 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
+              ◀ Anterior
+            </button>
+            <span x-text="`Página ${paginaActual} de ${totalPaginas}  ·  ${totalExp} expedientes`"></span>
+            <button @click="paginaSiguiente()" :disabled="paginaActual >= totalPaginas"
+                    class="px-3 py-1 rounded border border-slate-200 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
+              Siguiente ▶
+            </button>
           </div>
         </div>
 
@@ -461,9 +475,10 @@
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
                 <input x-model="filtroAb" type="text" class="inp w-full pl-8"
-                       placeholder="Buscar abogado por nombre o CUIT…"/>
+                       placeholder="Buscar abogado por nombre o CUIT…"
+                       @input.debounce.400ms="cargarAbogados()"/>
               </div>
-              <select x-model="ordenAb" class="inp">
+              <select x-model="ordenAb" @change="cargarAbogados()" class="inp">
                 <option value="total">Ordenar: más expedientes</option>
                 <option value="nombre">Ordenar: nombre A-Z</option>
                 <option value="si">Ordenar: más Se Presenta</option>
@@ -486,7 +501,8 @@
                   d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
               </svg>
               <input x-model="filtroRepresenta" type="text" class="inp w-full pl-8"
-                     placeholder="Filtrar por parte representada (ej: ARCA, García…)"/>
+                     placeholder="Filtrar por parte representada (ej: ARCA, García…)"
+                     @input.debounce.400ms="cargarAbogados()"/>
               <button x-show="filtroRepresenta"
                       @click="filtroRepresenta=''"
                       class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors">
@@ -511,7 +527,7 @@
                 </tr>
               </thead>
               <tbody>
-                <template x-for="ab in abogadosFiltrados" :key="ab.nombre">
+                <template x-for="ab in abogados" :key="ab.nombre">
                   <tr class="tbl-row cursor-pointer"
                       :class="panelDer?.nombre===ab.nombre && 'active'"
                       @click="panelDer = panelDer?.nombre===ab.nombre ? null : ab">
@@ -537,7 +553,7 @@
                     </td>
                   </tr>
                 </template>
-                <tr x-show="abogadosFiltrados.length===0">
+                <tr x-show="abogados.length===0 && !cargandoAb">
                   <td colspan="6" class="px-4 py-12 text-center text-slate-400 text-sm">
                     No hay abogados registrados aún.
                   </td>
@@ -644,9 +660,13 @@
 function app() {
   return {
     vista: 'expedientes',
-    expedientes: [],
-    stats: { total:0, si:0, no:0, error:0, pct_si:0, pct_no:0 },
+    expedientesPagina: [],
+    totalExp: 0,
+    paginaActual: 1,
+    porPagina: 50,
+    stats: { total:0, si:0, no:0, error:0, pct_si:0, pct_no:0, juzgados:[], secretarias:[] },
     cargando: true,
+    cargandoAb: false,
     panelDer: null,
 
     // Expedientes
@@ -657,117 +677,68 @@ function app() {
     confirmandoEliminar: false,
 
     // Abogados
+    abogados: [],
     filtroAb: '',
     filtroRepresenta: '',
     ordenAb: 'total',
 
-
     /* ── Init ── */
-    async init() { await this.cargar(); },
+    async init() {
+      await this.cargar();
+    },
 
     async cargar() {
       this.cargando = true;
       this.panelDer = null;
       try {
-        const [s, e] = await Promise.all([
-          fetch('/api/stats').then(r => r.json()),
-          fetch('/api/expedientes').then(r => r.json()),
-        ]);
-        this.stats = s;
-        this.expedientes = e;
+        this.stats = await fetch('/api/stats').then(r => r.json());
+        await this.cargarExpedientes();
       } catch (err) { console.error(err); }
       this.cargando = false;
     },
 
-    /* ── Valores únicos para dropdowns ── */
-    get juzgadosUnicos() {
-      const s = new Set(this.expedientes.map(e => e.juzgado).filter(Boolean));
-      return [...s].sort();
-    },
-    get secretariasUnicas() {
-      const s = new Set(this.expedientes.map(e => e.secretaria).filter(Boolean));
-      return [...s].sort();
-    },
-
-    /* ── Expedientes filtrados ── */
-    get expedientesFiltrados() {
-      let r = this.expedientes;
-      if (this.filtroRes === 'Si' || this.filtroRes === 'No')
-        r = r.filter(e => e.caja_se_presenta === this.filtroRes);
-      else if (this.filtroRes === 'error')
-        r = r.filter(e => !['Si','No'].includes(e.caja_se_presenta));
-      if (this.filtroJuzgado)
-        r = r.filter(e => e.juzgado === this.filtroJuzgado);
-      if (this.filtroSecretaria)
-        r = r.filter(e => e.secretaria === this.filtroSecretaria);
-      if (this.filtroTxt) {
-        const q = this.filtroTxt.toLowerCase();
-        r = r.filter(e => {
-          let h = `${e.numero} ${e.anio} ${e.caratula||''} ${e.juzgado||''} ${e.secretaria||''} ${e.fuente||''}`.toLowerCase();
-          for (const p of (e.participantes||[])) {
-            h += ' ' + (p.nombre||'').toLowerCase();
-            for (const ab of (p.abogados||[])) h += ' ' + (ab.nombre||'').toLowerCase();
-          }
-          return h.includes(q);
-        });
-      }
-      return r;
+    async cargarExpedientes() {
+      const p = new URLSearchParams({ pagina: this.paginaActual, por_pagina: this.porPagina });
+      if (this.filtroRes !== 'todos') p.set('resultado', this.filtroRes);
+      if (this.filtroJuzgado)         p.set('juzgado', this.filtroJuzgado);
+      if (this.filtroSecretaria)      p.set('secretaria', this.filtroSecretaria);
+      if (this.filtroTxt)             p.set('busqueda', this.filtroTxt);
+      const data = await fetch('/api/expedientes?' + p).then(r => r.json());
+      this.expedientesPagina = data.items;
+      this.totalExp = data.total;
     },
 
-    /* ── Estadísticas por abogado (calculado client-side) ── */
-    get abogadosStats() {
-      const mapa = {};
-      for (const exp of this.expedientes) {
-        const res = exp.caja_se_presenta;
-        for (const parte of (exp.participantes||[])) {
-          for (const ab of (parte.abogados||[])) {
-            const key = ab.nombre || 'Sin nombre';
-            if (!mapa[key]) {
-              mapa[key] = {
-                nombre: key,
-                cuit: ab.cuit || '',
-                tomo_folio: ab.tomo_folio || '',
-                total: 0, si: 0, no: 0, error: 0,
-                expedientes: [],
-              };
-            }
-            const entry = mapa[key];
-            /* evitar contar el mismo expediente dos veces si el abogado
-               aparece en múltiples partes del mismo expediente */
-            const yaContado = entry.expedientes.some(i => i.exp.id === exp.id && i.parte_nombre === parte.nombre);
-            if (!yaContado) {
-              entry.total++;
-              if (res === 'Si')      entry.si++;
-              else if (res === 'No') entry.no++;
-              else                   entry.error++;
-              entry.expedientes.push({
-                exp,
-                parte_tipo:   parte.tipo   || '',
-                parte_nombre: parte.nombre || '',
-              });
-            }
-          }
-        }
-      }
-      return Object.values(mapa);
+    async cargarAbogados() {
+      this.cargandoAb = true;
+      try {
+        const p = new URLSearchParams();
+        if (this.filtroAb)         p.set('filtro_ab', this.filtroAb);
+        if (this.filtroRepresenta) p.set('filtro_representa', this.filtroRepresenta);
+        let r = await fetch('/api/abogados?' + p).then(r => r.json());
+        if (this.ordenAb === 'nombre') r = [...r].sort((a,b) => a.nombre.localeCompare(b.nombre, 'es'));
+        else if (this.ordenAb === 'si') r = [...r].sort((a,b) => b.si - a.si);
+        this.abogados = r;
+      } catch (err) { console.error(err); }
+      this.cargandoAb = false;
     },
 
-    /* ── Abogados filtrados y ordenados ── */
-    get abogadosFiltrados() {
-      let r = this.abogadosStats;
-      if (this.filtroAb) {
-        const q = this.filtroAb.toLowerCase();
-        r = r.filter(a => (a.nombre+' '+a.cuit).toLowerCase().includes(q));
-      }
-      if (this.filtroRepresenta) {
-        const q = this.filtroRepresenta.toLowerCase();
-        r = r.filter(a => a.expedientes.some(i => (i.parte_nombre||'').toLowerCase().includes(q)));
-      }
-      if (this.ordenAb === 'total')  r = [...r].sort((a,b) => b.total - a.total);
-      if (this.ordenAb === 'nombre') r = [...r].sort((a,b) => a.nombre.localeCompare(b.nombre, 'es'));
-      if (this.ordenAb === 'si')     r = [...r].sort((a,b) => b.si - a.si);
-      return r;
+    async aplicarFiltros() {
+      this.paginaActual = 1;
+      await this.cargarExpedientes();
     },
+
+    get totalPaginas() { return Math.max(1, Math.ceil(this.totalExp / this.porPagina)); },
+
+    async paginaAnterior() {
+      if (this.paginaActual > 1) { this.paginaActual--; await this.cargarExpedientes(); }
+    },
+    async paginaSiguiente() {
+      if (this.paginaActual < this.totalPaginas) { this.paginaActual++; await this.cargarExpedientes(); }
+    },
+
+    /* ── Dropdowns desde stats ── */
+    get juzgadosUnicos()    { return this.stats.juzgados    || []; },
+    get secretariasUnicas() { return this.stats.secretarias || []; },
 
     /* Devuelve el nombre de la primera parte que coincide con el tipo buscado */
     getParte(exp, tipo) {
@@ -799,7 +770,8 @@ function app() {
       if (!r.ok) { alert('Error al eliminar'); return; }
       this.panelDer = null;
       this.confirmandoEliminar = false;
-      await this.cargar();
+      this.stats = await fetch('/api/stats').then(r => r.json());
+      await this.cargarExpedientes();
     },
 
   };

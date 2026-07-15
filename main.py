@@ -78,23 +78,32 @@ async def index():
 # ---------------------------------------------------------------------------
 @app.get("/api/stats")
 async def stats():
-    expedientes = db.obtener_todos()
-    total = len(expedientes)
-    si    = sum(1 for e in expedientes if e.get("caja_se_presenta") == "Si")
-    no    = sum(1 for e in expedientes if e.get("caja_se_presenta") == "No")
-    return {
-        "total":   total,
-        "si":      si,
-        "no":      no,
-        "error":   total - si - no,
-        "pct_si":  round(si  * 100 / total) if total else 0,
-        "pct_no":  round(no  * 100 / total) if total else 0,
-    }
+    return db.obtener_stats()
 
 
 @app.get("/api/expedientes")
-async def expedientes():
-    return db.obtener_todos()
+async def expedientes(
+    pagina:     int = Query(default=1,  ge=1),
+    por_pagina: int = Query(default=50, ge=1, le=200),
+    resultado:  str = Query(default=""),
+    juzgado:    str = Query(default=""),
+    secretaria: str = Query(default=""),
+    busqueda:   str = Query(default=""),
+):
+    items, total = db.obtener_paginados(
+        pagina, por_pagina,
+        filtro=busqueda, resultado=resultado,
+        juzgado=juzgado, secretaria=secretaria,
+    )
+    return {"items": items, "total": total}
+
+
+@app.get("/api/abogados")
+async def abogados(
+    filtro_ab:         str = Query(default=""),
+    filtro_representa: str = Query(default=""),
+):
+    return db.obtener_abogados_stats(filtro_ab, filtro_representa)
 
 
 # ---------------------------------------------------------------------------
