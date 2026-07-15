@@ -15,6 +15,7 @@ import customtkinter as ctk
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 import database as db
 import pjn_scraper as scraper
@@ -57,7 +58,7 @@ def extraer_datos_expediente(driver, num, anio):
         EC.presence_of_element_located((By.ID, "expediente:action-table"))
     )
 
-    fecha, url_demanda, fecha_demanda = scraper.extraer_datos_inicio(driver, "expediente:action-table")
+    fecha, url_demanda, fecha_demanda, detalle_demanda = scraper.extraer_datos_inicio(driver, "expediente:action-table")
     log(f"[Actuaciones] Última fecha: {fecha} | Demanda: {'sí' if url_demanda else 'no'}")
 
     # Históricas: pueden tener fecha aún más antigua y/o la demanda
@@ -67,23 +68,27 @@ def extraer_datos_expediente(driver, num, anio):
         )
         div_historicas.find_element(By.TAG_NAME, "a").click()
 
-        tabla_historicas_id = "expediente:action-historic-table"
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.ID, tabla_historicas_id))
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.ID, "expediente:action-historic-table"))
         )
 
-        fecha_hist, url_demanda_hist, fecha_demanda_hist = scraper.extraer_datos_inicio(driver, tabla_historicas_id)
+        fecha_hist, url_demanda_hist, fecha_demanda_hist, detalle_demanda_hist = scraper.extraer_datos_inicio(
+            driver, "expediente:action-historic-table"
+        )
         if fecha_hist:
             fecha = fecha_hist
             log(f"[Historica] Fecha más antigua: {fecha}")
         if url_demanda_hist:
-            url_demanda = url_demanda_hist
-            fecha_demanda = fecha_demanda_hist
+            url_demanda     = url_demanda_hist
+            fecha_demanda   = fecha_demanda_hist
+            detalle_demanda = detalle_demanda_hist
 
+    except TimeoutException:
+        log("[Historica] Sin registros históricos.")
     except Exception:
-        log(f"[Historica] Error: {traceback.format_exc()}")
+        log(f"[Historica] Error inesperado: {traceback.format_exc()}")
 
-    return fecha, url_demanda, fecha_demanda
+    return fecha, url_demanda, fecha_demanda, detalle_demanda
 
 
 def ejecutar_extraccion(usuario, password, headless, on_progreso=None):
@@ -114,11 +119,12 @@ def ejecutar_extraccion(usuario, password, headless, on_progreso=None):
         try:
             driver = scraper.inicializar_navegador(headless=headless)
             scraper._login_y_abrir_formulario(driver, usuario, password)
-            fecha, url_demanda, fecha_demanda = extraer_datos_expediente(driver, num, anio)
+            fecha, url_demanda, fecha_demanda, detalle_demanda = extraer_datos_expediente(driver, num, anio)
 
-            # url_demanda=None means not found; store 'NINGUNA' so we don't re-check
-            db.actualizar_datos_inicio(exp["id"], fecha, url_demanda or "NINGUNA", fecha_demanda)
-            log(f"[Guardado] fecha_inicio={fecha} | fecha_demanda={fecha_demanda} | url_demanda={'encontrada' if url_demanda else 'NINGUNA'}")
+            db.actualizar_datos_inicio(exp["id"], fecha, url_demanda or "NINGUNA", fecha_demanda, detalle_demanda)
+            log(f"[Guardado] fecha_inicio={fecha}"
+                + (f" | fecha_demanda={fecha_demanda} | detalle={detalle_demanda}" if fecha_demanda else "")
+                + f" | demanda={'encontrada' if url_demanda else 'no'}")
 
         except Exception:
             log(f"[Error] Fallo en {num}/{anio}:\n{traceback.format_exc()}")

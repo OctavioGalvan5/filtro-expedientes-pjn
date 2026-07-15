@@ -75,6 +75,9 @@ def inicializar_db():
     cur.execute(
         "ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS fecha_demanda TEXT"
     )
+    cur.execute(
+        "ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS detalle_demanda TEXT"
+    )
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS pjn_participantes (
@@ -375,13 +378,17 @@ def obtener_pendientes_datos_inicio() -> list:
     return rows
 
 
-def actualizar_datos_inicio(id: int, fecha_inicio: str, url_demanda: str, fecha_demanda: str = None):
-    """Actualiza fecha_inicio, url_demanda y fecha_demanda de un expediente por su id."""
+def actualizar_datos_inicio(id: int, fecha_inicio: str, url_demanda: str,
+                            fecha_demanda: str = None, detalle_demanda: str = None):
+    """Actualiza fecha_inicio, url_demanda, fecha_demanda y detalle_demanda."""
     con = _connect()
     cur = con.cursor()
     cur.execute(
-        "UPDATE pjn_expedientes SET fecha_inicio = %s, url_demanda = %s, fecha_demanda = %s WHERE id = %s",
-        (fecha_inicio or None, url_demanda, fecha_demanda or None, id)
+        """UPDATE pjn_expedientes
+           SET fecha_inicio = %s, url_demanda = %s,
+               fecha_demanda = %s, detalle_demanda = %s
+           WHERE id = %s""",
+        (fecha_inicio or None, url_demanda, fecha_demanda or None, detalle_demanda or None, id)
     )
     con.commit()
     cur.close()

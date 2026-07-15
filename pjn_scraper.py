@@ -219,6 +219,7 @@ def extraer_datos_inicio(driver, tabla_id):
     url_demanda = None
     fecha_ultima = None
     fecha_demanda = None
+    detalle_demanda = None
 
     while True:
         WebDriverWait(driver, 20).until(
@@ -243,14 +244,16 @@ def extraer_datos_inicio(driver, tabla_id):
                 # Buscar demanda: la tabla va de más reciente a más antigua,
                 # por eso seguimos buscando en todas las páginas y pisamos
                 # con cada coincidencia — al final queda la más antigua.
-                tipo    = celdas[3].text.strip().upper()
-                detalle = celdas[4].text.strip().upper()
+                tipo        = celdas[3].text.strip().upper()
+                detalle_raw = celdas[4].text.strip()
+                detalle     = detalle_raw.upper()
                 if "ESCRITO" in tipo and "DEMANDA" in detalle and "DESISTE" not in detalle:
                     for a in celdas[0].find_elements(By.TAG_NAME, "a"):
                         href = a.get_attribute("href") or ""
                         if "viewer.seam" in href and "download=true" not in href:
-                            url_demanda = href
-                            fecha_demanda = m.group(0) if m else None
+                            url_demanda     = href
+                            fecha_demanda   = m.group(0) if m else None
+                            detalle_demanda = detalle_raw
                             break
             except StaleElementReferenceException:
                 pass
@@ -263,7 +266,7 @@ def extraer_datos_inicio(driver, tabla_id):
         btn_sig.click()
         WebDriverWait(driver, 15).until(EC.staleness_of(primera_fila))
 
-    return fecha_ultima, url_demanda, fecha_demanda
+    return fecha_ultima, url_demanda, fecha_demanda, detalle_demanda
 
 
 def _encontrar_boton_siguiente(driver):
