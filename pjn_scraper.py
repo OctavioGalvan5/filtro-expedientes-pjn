@@ -222,7 +222,7 @@ def extraer_datos_inicio(driver, tabla_id):
 
     while True:
         WebDriverWait(driver, 20).until(
-            EC.visibility_of_element_located((By.ID, tabla_id))
+            EC.presence_of_element_located((By.ID, tabla_id))
         )
         filas = driver.find_element(By.ID, tabla_id).find_elements(By.TAG_NAME, "tr")[1:]
         if not filas:
@@ -391,7 +391,7 @@ def procesar_tabla_paginada(driver, tabla_id, seccion_nombre):
         for intento in range(3):
             try:
                 WebDriverWait(driver, 20).until(
-                    EC.visibility_of_element_located((By.ID, tabla_id))
+                    EC.presence_of_element_located((By.ID, tabla_id))
                 )
                 tabla = driver.find_element(By.ID, tabla_id)
                 filas_datos = tabla.find_elements(By.TAG_NAME, "tr")[1:]
@@ -502,16 +502,11 @@ def _buscar_y_procesar(driver, num_expediente, anio_expediente):
             )
             div_historicas.find_element(By.TAG_NAME, "a").click()
 
+            tabla_historicas_id = "expediente:action-historic-table"
             WebDriverWait(driver, 20).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, ".ui-dialog .ui-dialog-content"))
+                EC.presence_of_element_located((By.ID, tabla_historicas_id))
             )
-            tabla_en_dialogo = WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, ".ui-dialog .ui-dialog-content table[id]")
-                )
-            )
-            tabla_historicas_id = tabla_en_dialogo.get_attribute("id")
-            log(f"[Historicas] Tabla ID: '{tabla_historicas_id}'. Procesando...")
+            log(f"[Historicas] Tabla encontrada. Procesando...")
             hallazgos += procesar_tabla_paginada(driver, tabla_historicas_id, "Historicas")
         except Exception:
             log("[Historicas] No se pudo acceder al historial.")

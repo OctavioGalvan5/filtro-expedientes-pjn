@@ -67,15 +67,10 @@ def extraer_datos_expediente(driver, num, anio):
         )
         div_historicas.find_element(By.TAG_NAME, "a").click()
 
+        tabla_historicas_id = "expediente:action-historic-table"
         WebDriverWait(driver, 20).until(
-            EC.visibility_of_element_located((By.CSS_SELECTOR, ".ui-dialog .ui-dialog-content"))
+            EC.presence_of_element_located((By.ID, tabla_historicas_id))
         )
-        tabla_en_dialogo = WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, ".ui-dialog .ui-dialog-content table[id]")
-            )
-        )
-        tabla_historicas_id = tabla_en_dialogo.get_attribute("id")
 
         fecha_hist, url_demanda_hist, fecha_demanda_hist = scraper.extraer_datos_inicio(driver, tabla_historicas_id)
         if fecha_hist:
@@ -86,7 +81,7 @@ def extraer_datos_expediente(driver, num, anio):
             fecha_demanda = fecha_demanda_hist
 
     except Exception:
-        log("[Historica] No disponible.")
+        log(f"[Historica] Error: {traceback.format_exc()}")
 
     return fecha, url_demanda, fecha_demanda
 
