@@ -34,7 +34,8 @@ def main():
         driver = scraper.inicializar_navegador(headless=HEADLESS)
         scraper._login_y_abrir_formulario(driver, USUARIO, PASSWORD)
 
-        encontrado, participantes, jurisdiccion, juzgado, secretaria = \
+        (encontrado, participantes, jurisdiccion, juzgado, secretaria,
+         fecha_inicio, url_demanda, fecha_demanda, detalle_demanda) = \
             scraper._buscar_y_procesar(driver, numero, anio)
 
         log(f"\n{'='*50}")
@@ -42,6 +43,10 @@ def main():
         log(f"Jurisdiccion     : {jurisdiccion}")
         log(f"Juzgado          : {juzgado}")
         log(f"Secretaria       : {secretaria}")
+        log(f"Fecha inicio     : {fecha_inicio}")
+        log(f"Demanda          : {url_demanda or 'no encontrada'}")
+        log(f"Fecha demanda    : {fecha_demanda or '—'}")
+        log(f"Detalle demanda  : {detalle_demanda or '—'}")
         log(f"Participantes    : {len(participantes)}")
         for p in participantes:
             log(f"  [{p.get('tipo','?')}] {p.get('nombre','?')} "

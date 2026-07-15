@@ -177,6 +177,135 @@ def _procesar_filas(driver, filas_datos, pagina_num):
     return hallazgos
 
 
+def _procesar_tabla_completa(driver, tabla_id, seccion_nombre, buscar_frase=True):
+    """
+    Único pase por todas las páginas de la tabla.
+    Para cada fila:
+      - Siempre: extrae fecha (fecha_ultima) y detecta demanda (url/fecha/detalle).
+      - Si buscar_frase=True y la frase aún no fue encontrada: descarga el PDF y busca.
+        Una vez encontrada la frase, deja de descargar PDFs pero continúa las páginas
+        para completar fecha_ultima y demanda más antigua.
+    Retorna (hallazgos, fecha_ultima, url_demanda, fecha_demanda, detalle_demanda).
+    """
+    pagina_num    = 1
+    hallazgos     = []
+    frase_encontrada = False
+    fecha_ultima  = None
+    url_demanda   = None
+    fecha_demanda = None
+    detalle_demanda = None
+
+    while True:
+        log(f"[{seccion_nombre}] Procesando página {pagina_num}...")
+
+        filas_datos = None
+        for intento in range(3):
+            try:
+                WebDriverWait(driver, 20).until(
+                    EC.presence_of_element_located((By.ID, tabla_id))
+                )
+                filas_datos = driver.find_element(By.ID, tabla_id).find_elements(By.TAG_NAME, "tr")[1:]
+                break
+            except StaleElementReferenceException:
+                if intento == 2:
+                    raise
+                log(f"[{seccion_nombre}] Tabla obsoleta, reintentando ({intento + 1}/3)...")
+                time.sleep(1)
+
+        log(f"[{seccion_nombre}] {len(filas_datos)} movimientos en esta página.")
+
+        # Paso 1: volcar el DOM a memoria antes de cualquier descarga
+        filas_info = []
+        for fila in filas_datos:
+            try:
+                celdas = fila.find_elements(By.TAG_NAME, "td")
+                if len(celdas) < 5:
+                    continue
+                raw_fecha = celdas[2].text.strip()
+                m = re.search(r'\d{1,2}/\d{1,2}/\d{4}', raw_fecha)
+                viewer_url = None
+                for a in celdas[0].find_elements(By.TAG_NAME, "a"):
+                    href = a.get_attribute("href") or ""
+                    if "viewer.seam" in href and "download=true" not in href:
+                        viewer_url = href
+                        break
+                filas_info.append({
+                    "raw_fecha":   raw_fecha,
+                    "fecha_m":     m,
+                    "oficina":     celdas[1].text.strip() if len(celdas) > 1 else "",
+                    "tipo":        celdas[3].text.strip(),
+                    "detalle_raw": celdas[4].text.strip(),
+                    "foja":        celdas[5].text.strip() if len(celdas) > 5 else "",
+                    "viewer_url":  viewer_url,
+                })
+            except StaleElementReferenceException:
+                log(f"[Advertencia] Fila obsoleta en pág.{pagina_num}, se omite.")
+
+        # Paso 2: procesar con datos en memoria
+        cookies = {c['name']: c['value'] for c in driver.get_cookies()}
+        for idx, info in enumerate(filas_info, 1):
+            m         = info["fecha_m"]
+            tipo_up   = info["tipo"].upper()
+            det_up    = info["detalle_raw"].upper()
+
+            # Fecha más antigua (siempre)
+            if m:
+                fecha_ultima = m.group(0)
+
+            # Demanda más antigua (siempre; tabla va de reciente a antigua → última coincidencia = más antigua)
+            if ("ESCRITO" in tipo_up and "DEMANDA" in det_up
+                    and "DESISTE" not in det_up and info["viewer_url"]):
+                url_demanda     = info["viewer_url"]
+                fecha_demanda   = m.group(0) if m else None
+                detalle_demanda = info["detalle_raw"]
+
+            # Descarga PDF para frase (solo si aún no fue encontrada)
+            contenido = "No contiene documento adjunto para ver"
+            if buscar_frase and not frase_encontrada and info["viewer_url"]:
+                print(f"      [Descarga] Pág.{pagina_num} fila {idx}: descargando documento...")
+                texto = extraer_texto_pdf(info["viewer_url"] + "&download=true", cookies)
+                if texto:
+                    contenido = texto
+                    if FRASE_BUSCADA.lower() in " ".join(contenido.split()).lower():
+                        frase_encontrada = True
+                        hallazgos.append({
+                            "seccion":     seccion_nombre,
+                            "pagina":      pagina_num,
+                            "fila":        idx,
+                            "fecha":       info["raw_fecha"],
+                            "tipo":        info["tipo"],
+                            "descripcion": info["detalle_raw"],
+                        })
+                        print("*** FRASE ENCONTRADA EN ESTE DOCUMENTO ***")
+                else:
+                    contenido = "No se pudo extraer el texto del documento"
+
+            print(f"\n--- Pág.{pagina_num} | Fila {idx} ---")
+            print(f"Fecha: {info['raw_fecha']}")
+            print(f"Oficina: {info['oficina']}")
+            print(f"Tipo: {info['tipo']}")
+            print(f"Descripcion: {info['detalle_raw']}")
+            print(f"Foja: {info['foja']}")
+            print(f"Contenido:\n{contenido}")
+            print("-" * 60)
+
+        btn_sig = _encontrar_boton_siguiente(driver)
+        if not btn_sig:
+            log(f"[{seccion_nombre}] Última página. Total: {pagina_num} página(s).")
+            break
+
+        log(f"[{seccion_nombre}] Avanzando a página {pagina_num + 1}...")
+        primera_fila = filas_datos[0] if filas_datos else None
+        btn_sig.click()
+        if primera_fila:
+            WebDriverWait(driver, 15).until(EC.staleness_of(primera_fila))
+        else:
+            time.sleep(1)
+        pagina_num += 1
+
+    return hallazgos, fecha_ultima, url_demanda, fecha_demanda, detalle_demanda
+
+
 def extraer_fecha_ultima_fila(driver, tabla_id):
     """Navega hasta la última página de la tabla y devuelve la fecha de la última fila."""
     try:
@@ -557,7 +686,15 @@ def _login_y_abrir_formulario(driver, usuario, password):
 
 
 def _buscar_y_procesar(driver, num_expediente, anio_expediente):
-    """Busca un expediente y analiza sus documentos. Retorna True si se encontró la frase."""
+    """
+    Busca el expediente y en un único pase por cada tabla:
+      - Descarga PDFs y busca la frase
+      - Extrae fecha_inicio, url_demanda, fecha_demanda, detalle_demanda
+    Las históricas siempre se procesan (para obtener datos más antiguos);
+    solo se busca la frase en ellas si aún no fue encontrada en la tabla principal.
+    Retorna (encontrado, participantes, jurisdiccion, juzgado, secretaria,
+             fecha_inicio, url_demanda, fecha_demanda, detalle_demanda).
+    """
     log(f"[Consulta] Buscando expediente Nro {num_expediente} / Año {anio_expediente}...")
 
     select_camara = Select(driver.find_element(By.ID, "formPublica:camaraNumAni"))
@@ -582,28 +719,37 @@ def _buscar_y_procesar(driver, num_expediente, anio_expediente):
 
     participantes = extraer_intervinientes(driver)
 
-    hallazgos = procesar_tabla_paginada(driver, "expediente:action-table", "Actuaciones")
+    hallazgos, fecha_inicio, url_demanda, fecha_demanda, detalle_demanda = \
+        _procesar_tabla_completa(driver, "expediente:action-table", "Actuaciones")
 
-    if not hallazgos:
-        print("\n[Historicas] Buscando historial de actuaciones...")
-        try:
-            div_historicas = WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.ID, "expediente:btnActuacionesHistoricas"))
-            )
-            div_historicas.find_element(By.TAG_NAME, "a").click()
+    # Históricas: siempre para fecha/demanda más antigua;
+    # buscar frase solo si todavía no fue encontrada.
+    print("\n[Historicas] Verificando historial de actuaciones...")
+    try:
+        div_historicas = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.ID, "expediente:btnActuacionesHistoricas"))
+        )
+        div_historicas.find_element(By.TAG_NAME, "a").click()
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.ID, "expediente:action-historic-table"))
+        )
+        log("[Historicas] Tabla encontrada. Procesando...")
+        h2, fecha_hist, url_dem_hist, fd_hist, dd_hist = _procesar_tabla_completa(
+            driver, "expediente:action-historic-table", "Historicas",
+            buscar_frase=(not hallazgos),
+        )
+        hallazgos.extend(h2)
+        if fecha_hist:
+            fecha_inicio = fecha_hist
+        if url_dem_hist:
+            url_demanda, fecha_demanda, detalle_demanda = url_dem_hist, fd_hist, dd_hist
+    except TimeoutException:
+        log("[Historicas] Sin registros históricos.")
+    except Exception:
+        log("[Historicas] No se pudo acceder al historial.")
 
-            tabla_historicas_id = "expediente:action-historic-table"
-            WebDriverWait(driver, 20).until(
-                EC.presence_of_element_located((By.ID, tabla_historicas_id))
-            )
-            log(f"[Historicas] Tabla encontrada. Procesando...")
-            hallazgos += procesar_tabla_paginada(driver, tabla_historicas_id, "Historicas")
-        except Exception:
-            log("[Historicas] No se pudo acceder al historial.")
-    else:
-        print("\n[Historicas] Frase ya encontrada. Saltando históricas.")
-
-    return len(hallazgos) > 0, participantes, jurisdiccion, juzgado, secretaria
+    return (len(hallazgos) > 0, participantes, jurisdiccion, juzgado, secretaria,
+            fecha_inicio, url_demanda, fecha_demanda, detalle_demanda)
 
 
 def ejecutar_flujo(usuario, password, headless=False):
@@ -616,7 +762,7 @@ def ejecutar_flujo(usuario, password, headless=False):
         num_expediente = "13000369"
         anio_expediente = "2006"
 
-        encontrado, _, _, _, _ = _buscar_y_procesar(driver, num_expediente, anio_expediente)
+        encontrado, *_ = _buscar_y_procesar(driver, num_expediente, anio_expediente)
 
         print("\n" + "=" * 60)
         print("RESUMEN FINAL")
@@ -710,25 +856,17 @@ def ejecutar_desde_excel(archivo_entrada, usuario, password,
             participantes = []
             jurisdiccion = juzgado = secretaria = ""
             fecha_inicio = url_demanda = fecha_demanda = detalle_demanda = None
-            inicio_extraido = False
             try:
                 driver = inicializar_navegador(headless=headless)
                 _login_y_abrir_formulario(driver, usuario, password)
-                encontrado, participantes, jurisdiccion, juzgado, secretaria = _buscar_y_procesar(driver, num, anio)
+                (encontrado, participantes, jurisdiccion, juzgado, secretaria,
+                 fecha_inicio, url_demanda, fecha_demanda, detalle_demanda) = \
+                    _buscar_y_procesar(driver, num, anio)
                 resultado = "Si" if encontrado else "No"
                 log(f"[Resultado] Caja se presenta: {resultado}")
-
-                log("[Inicio] Extrayendo fecha y demanda...")
-                try:
-                    fecha_inicio, url_demanda, fecha_demanda, detalle_demanda = \
-                        extraer_datos_inicio_expediente(driver, num, anio)
-                    inicio_extraido = True
-                    log(f"[Inicio] fecha_inicio={fecha_inicio}"
-                        + (f" | fecha_demanda={fecha_demanda}" if fecha_demanda else "")
-                        + f" | demanda={'sí' if url_demanda else 'no'}")
-                except Exception:
-                    log(f"[Inicio] Error extrayendo datos de inicio:\n{traceback.format_exc()}")
-
+                log(f"[Inicio] fecha_inicio={fecha_inicio}"
+                    + (f" | fecha_demanda={fecha_demanda}" if fecha_demanda else "")
+                    + f" | demanda={'sí' if url_demanda else 'no'}")
             except KeyboardInterrupt:
                 raise
             except Exception:
@@ -742,7 +880,7 @@ def ejecutar_desde_excel(archivo_entrada, usuario, password,
                     num, anio, caratula, resultado, participantes,
                     jurisdiccion, juzgado, secretaria, fuente,
                     fecha_inicio=fecha_inicio,
-                    url_demanda=(url_demanda or "NINGUNA") if inicio_extraido else None,
+                    url_demanda=url_demanda or "NINGUNA",
                     fecha_demanda=fecha_demanda,
                     detalle_demanda=detalle_demanda,
                 )
