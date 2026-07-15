@@ -277,9 +277,12 @@ def extraer_datos_inicio_expediente(driver, num, anio):
     Busca también en históricas. Puede llamarse desde cualquier página del portal.
     Devuelve un 4-tuple (fecha_inicio, url_demanda, fecha_demanda, detalle_demanda).
     """
-    # Volver al formulario de búsqueda
-    WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, ID_NUEVA_CONSULTA)))
-    driver.find_element(By.ID, ID_NUEVA_CONSULTA).click()
+    # Volver al formulario — XPath flexible (los j_idt son dinámicos) + JS click
+    # para esquivar overlays que quedan tras procesar históricas.
+    elem = WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.XPATH, "//*[contains(@id,'menuNuevaConsulta')]"))
+    )
+    driver.execute_script("arguments[0].click();", elem)
     WebDriverWait(driver, 20).until(
         EC.presence_of_element_located((By.ID, "formPublica:camaraNumAni"))
     )
@@ -542,8 +545,10 @@ def _login_y_abrir_formulario(driver, usuario, password):
             break
 
     log("[Clic] Abriendo 'Nueva Consulta Pública'...")
-    WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, ID_NUEVA_CONSULTA)))
-    driver.find_element(By.ID, ID_NUEVA_CONSULTA).click()
+    elem = WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.XPATH, "//*[contains(@id,'menuNuevaConsulta')]"))
+    )
+    driver.execute_script("arguments[0].click();", elem)
 
     WebDriverWait(driver, 20).until(
         EC.presence_of_element_located((By.ID, "formPublica:camaraNumAni"))
