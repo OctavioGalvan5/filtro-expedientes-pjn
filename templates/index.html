@@ -250,6 +250,133 @@
                      placeholder="Buscar número, carátula, parte, abogado…"
                      @input.debounce.400ms="aplicarFiltros()"/>
             </div>
+
+            <!-- Filtros por participante -->
+            <div class="flex items-center gap-2"
+                 x-show="participantes.actor.length || participantes.demandado.length || participantes.tercero.length">
+
+              <!-- Dropdown Actor -->
+              <div class="relative flex-1" x-show="participantes.actor.length"
+                   @click.outside="if(dropdownAbierto==='actor') dropdownAbierto=null">
+                <button @click="dropdownAbierto = dropdownAbierto==='actor' ? null : 'actor'"
+                        class="inp w-full flex items-center justify-between gap-1.5"
+                        :class="filtroActores.length && 'border-blue-300 bg-blue-50'">
+                  <span class="text-xs text-slate-500 truncate">
+                    Actores<template x-if="filtroActores.length">
+                      <span class="font-semibold text-blue-600" x-text="' ('+filtroActores.length+')'"></span>
+                    </template>
+                  </span>
+                  <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+                <div x-show="dropdownAbierto==='actor'"
+                     class="absolute z-50 top-full mt-1 left-0 w-72 bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col overflow-hidden">
+                  <div class="p-2 border-b border-slate-100">
+                    <input x-model="buscarPart.actor" type="text" placeholder="Buscar actor…"
+                           @click.stop class="inp w-full text-xs py-1">
+                  </div>
+                  <div class="overflow-y-auto max-h-52">
+                    <template x-for="n in partFiltrada('actor')" :key="n">
+                      <label class="flex items-center gap-2.5 px-3 py-1.5 hover:bg-slate-50 cursor-pointer select-none">
+                        <input type="checkbox" :value="n" x-model="filtroActores" @change="aplicarFiltros()"
+                               class="rounded border-slate-300">
+                        <span class="text-xs text-slate-700 truncate" x-text="n"></span>
+                      </label>
+                    </template>
+                    <p x-show="partFiltrada('actor').length===0" class="px-3 py-2 text-xs text-slate-400">Sin resultados</p>
+                  </div>
+                  <div x-show="filtroActores.length" class="px-3 py-1.5 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-xs text-slate-400" x-text="filtroActores.length+' seleccionado/s'"></span>
+                    <button @click="filtroActores=[]; aplicarFiltros()" class="text-xs text-red-500 hover:text-red-700">Limpiar</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dropdown Demandado -->
+              <div class="relative flex-1" x-show="participantes.demandado.length"
+                   @click.outside="if(dropdownAbierto==='demandado') dropdownAbierto=null">
+                <button @click="dropdownAbierto = dropdownAbierto==='demandado' ? null : 'demandado'"
+                        class="inp w-full flex items-center justify-between gap-1.5"
+                        :class="filtroDemandados.length && 'border-red-300 bg-red-50'">
+                  <span class="text-xs text-slate-500 truncate">
+                    Demandados<template x-if="filtroDemandados.length">
+                      <span class="font-semibold text-red-600" x-text="' ('+filtroDemandados.length+')'"></span>
+                    </template>
+                  </span>
+                  <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+                <div x-show="dropdownAbierto==='demandado'"
+                     class="absolute z-50 top-full mt-1 left-0 w-72 bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col overflow-hidden">
+                  <div class="p-2 border-b border-slate-100">
+                    <input x-model="buscarPart.demandado" type="text" placeholder="Buscar demandado…"
+                           @click.stop class="inp w-full text-xs py-1">
+                  </div>
+                  <div class="overflow-y-auto max-h-52">
+                    <template x-for="n in partFiltrada('demandado')" :key="n">
+                      <label class="flex items-center gap-2.5 px-3 py-1.5 hover:bg-slate-50 cursor-pointer select-none">
+                        <input type="checkbox" :value="n" x-model="filtroDemandados" @change="aplicarFiltros()"
+                               class="rounded border-slate-300">
+                        <span class="text-xs text-slate-700 truncate" x-text="n"></span>
+                      </label>
+                    </template>
+                    <p x-show="partFiltrada('demandado').length===0" class="px-3 py-2 text-xs text-slate-400">Sin resultados</p>
+                  </div>
+                  <div x-show="filtroDemandados.length" class="px-3 py-1.5 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-xs text-slate-400" x-text="filtroDemandados.length+' seleccionado/s'"></span>
+                    <button @click="filtroDemandados=[]; aplicarFiltros()" class="text-xs text-red-500 hover:text-red-700">Limpiar</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dropdown Tercero -->
+              <div class="relative flex-1" x-show="participantes.tercero.length"
+                   @click.outside="if(dropdownAbierto==='tercero') dropdownAbierto=null">
+                <button @click="dropdownAbierto = dropdownAbierto==='tercero' ? null : 'tercero'"
+                        class="inp w-full flex items-center justify-between gap-1.5"
+                        :class="filtroTerceros.length && 'border-purple-300 bg-purple-50'">
+                  <span class="text-xs text-slate-500 truncate">
+                    Terceros<template x-if="filtroTerceros.length">
+                      <span class="font-semibold text-purple-600" x-text="' ('+filtroTerceros.length+')'"></span>
+                    </template>
+                  </span>
+                  <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </button>
+                <div x-show="dropdownAbierto==='tercero'"
+                     class="absolute z-50 top-full mt-1 left-0 w-72 bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col overflow-hidden">
+                  <div class="p-2 border-b border-slate-100">
+                    <input x-model="buscarPart.tercero" type="text" placeholder="Buscar tercero…"
+                           @click.stop class="inp w-full text-xs py-1">
+                  </div>
+                  <div class="overflow-y-auto max-h-52">
+                    <template x-for="n in partFiltrada('tercero')" :key="n">
+                      <label class="flex items-center gap-2.5 px-3 py-1.5 hover:bg-slate-50 cursor-pointer select-none">
+                        <input type="checkbox" :value="n" x-model="filtroTerceros" @change="aplicarFiltros()"
+                               class="rounded border-slate-300">
+                        <span class="text-xs text-slate-700 truncate" x-text="n"></span>
+                      </label>
+                    </template>
+                    <p x-show="partFiltrada('tercero').length===0" class="px-3 py-2 text-xs text-slate-400">Sin resultados</p>
+                  </div>
+                  <div x-show="filtroTerceros.length" class="px-3 py-1.5 border-t border-slate-100 flex items-center justify-between">
+                    <span class="text-xs text-slate-400" x-text="filtroTerceros.length+' seleccionado/s'"></span>
+                    <button @click="filtroTerceros=[]; aplicarFiltros()" class="text-xs text-red-500 hover:text-red-700">Limpiar</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Limpiar toda la selección -->
+              <button x-show="filtroActores.length || filtroDemandados.length || filtroTerceros.length"
+                      @click="filtroActores=[]; filtroDemandados=[]; filtroTerceros=[]; aplicarFiltros()"
+                      class="flex-shrink-0 text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+                Limpiar todo
+              </button>
+            </div>
+
           </div>
 
           <!-- Tabla -->
@@ -712,6 +839,14 @@ function app() {
     filtroSecretaria: '',
     confirmandoEliminar: false,
 
+    // Filtros participantes
+    participantes: { actor: [], demandado: [], tercero: [] },
+    filtroActores: [],
+    filtroDemandados: [],
+    filtroTerceros: [],
+    dropdownAbierto: null,
+    buscarPart: { actor: '', demandado: '', tercero: '' },
+
     // Abogados
     abogados: [],
     filtroAb: '',
@@ -721,6 +856,7 @@ function app() {
     /* ── Init ── */
     async init() {
       await this.cargar();
+      this.participantes = await fetch('/api/participantes').then(r => r.json());
     },
 
     async cargar() {
@@ -735,10 +871,13 @@ function app() {
 
     async cargarExpedientes() {
       const p = new URLSearchParams({ pagina: this.paginaActual, por_pagina: this.porPagina });
-      if (this.filtroRes !== 'todos') p.set('resultado', this.filtroRes);
-      if (this.filtroJuzgado)         p.set('juzgado', this.filtroJuzgado);
-      if (this.filtroSecretaria)      p.set('secretaria', this.filtroSecretaria);
-      if (this.filtroTxt)             p.set('busqueda', this.filtroTxt);
+      if (this.filtroRes !== 'todos')       p.set('resultado',   this.filtroRes);
+      if (this.filtroJuzgado)               p.set('juzgado',     this.filtroJuzgado);
+      if (this.filtroSecretaria)            p.set('secretaria',  this.filtroSecretaria);
+      if (this.filtroTxt)                   p.set('busqueda',    this.filtroTxt);
+      if (this.filtroActores.length)        p.set('actores',     this.filtroActores.join(','));
+      if (this.filtroDemandados.length)     p.set('demandados',  this.filtroDemandados.join(','));
+      if (this.filtroTerceros.length)       p.set('terceros',    this.filtroTerceros.join(','));
       const data = await fetch('/api/expedientes?' + p).then(r => r.json());
       this.expedientesPagina = data.items;
       this.totalExp = data.total;
@@ -776,6 +915,13 @@ function app() {
     get juzgadosUnicos()    { return this.stats.juzgados    || []; },
     get secretariasUnicas() { return this.stats.secretarias || []; },
 
+    /* Lista de nombres filtrada por texto de búsqueda del dropdown */
+    partFiltrada(tipo) {
+      const lista = this.participantes[tipo] || [];
+      const b = (this.buscarPart[tipo] || '').toLowerCase();
+      return b ? lista.filter(n => n.toLowerCase().includes(b)) : lista;
+    },
+
     /* Devuelve el nombre de la primera parte que coincide con el tipo buscado */
     getParte(exp, tipo) {
       const p = (exp.participantes||[]).find(p => (p.tipo||'').toLowerCase().includes(tipo));
@@ -786,10 +932,13 @@ function app() {
     /* ── Exportar a Excel ── */
     exportarExpedientes() {
       const p = new URLSearchParams();
-      if (this.filtroRes !== 'todos') p.set('resultado', this.filtroRes);
-      if (this.filtroJuzgado)         p.set('juzgado', this.filtroJuzgado);
-      if (this.filtroSecretaria)      p.set('secretaria', this.filtroSecretaria);
-      if (this.filtroTxt)             p.set('busqueda', this.filtroTxt);
+      if (this.filtroRes !== 'todos')   p.set('resultado',  this.filtroRes);
+      if (this.filtroJuzgado)           p.set('juzgado',    this.filtroJuzgado);
+      if (this.filtroSecretaria)        p.set('secretaria', this.filtroSecretaria);
+      if (this.filtroTxt)               p.set('busqueda',   this.filtroTxt);
+      if (this.filtroActores.length)    p.set('actores',    this.filtroActores.join(','));
+      if (this.filtroDemandados.length) p.set('demandados', this.filtroDemandados.join(','));
+      if (this.filtroTerceros.length)   p.set('terceros',   this.filtroTerceros.join(','));
       window.location.href = '/api/exportar?' + p.toString();
     },
 

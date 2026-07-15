@@ -252,8 +252,40 @@ def obtener_procesados() -> set:
     return {(r[0], r[1]) for r in rows}
 
 
+def obtener_participantes_por_tipo() -> dict:
+    """Retorna dict {actor: [nombres...], demandado: [...], tercero: [...]} con nombres únicos ordenados."""
+    con = _connect()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT LOWER(tipo), nombre
+        FROM pjn_participantes
+        WHERE nombre IS NOT NULL AND nombre <> ''
+        GROUP BY LOWER(tipo), nombre
+        ORDER BY nombre
+    """)
+    resultado = {'actor': [], 'demandado': [], 'tercero': []}
+    seen = {'actor': set(), 'demandado': set(), 'tercero': set()}
+    for tipo_raw, nombre in cur.fetchall():
+        t = tipo_raw or ''
+        if 'actor' in t:
+            key = 'actor'
+        elif 'demandado' in t:
+            key = 'demandado'
+        elif 'tercero' in t:
+            key = 'tercero'
+        else:
+            continue
+        if nombre not in seen[key]:
+            seen[key].add(nombre)
+            resultado[key].append(nombre)
+    cur.close()
+    con.close()
+    return resultado
+
+
 def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "",
-                      resultado: str = "", juzgado: str = "", secretaria: str = "") -> tuple:
+                      resultado: str = "", juzgado: str = "", secretaria: str = "",
+                      actores: list = None, demandados: list = None, terceros: list = None) -> tuple:
     """
     Retorna (expedientes, total) para la página dada.
     expedientes: lista de dicts con participantes y abogados anidados.
@@ -296,6 +328,18 @@ def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "",
     if secretaria:
         conditions.append("e.secretaria = %s")
         params.append(secretaria)
+
+    for tipo_key, nombres in [('actor', actores or []), ('demandado', demandados or []), ('tercero', terceros or [])]:
+        if nombres:
+            conditions.append("""
+                EXISTS (
+                    SELECT 1 FROM pjn_participantes pf
+                    WHERE pf.expediente_id = e.id
+                      AND LOWER(pf.nombre) = ANY(%s)
+                      AND LOWER(pf.tipo) LIKE %s
+                )
+            """)
+            params.extend([[n.lower() for n in nombres], f'%{tipo_key}%'])
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
@@ -408,7 +452,9 @@ def eliminar_expediente(id: int):
 def guardar_expediente(numero: str, anio: str, caratula: str,
                        caja_se_presenta: str, participantes: list = None,
                        jurisdiccion: str = "", juzgado: str = "", secretaria: str = "",
-                       fuente: str = "Extractor PJN", fecha_inicio: str = ""):
+                       fuente: str = "Extractor PJN", fecha_inicio: str = None,
+                       url_demanda: str = None, fecha_demanda: str = None,
+                       detalle_demanda: str = None):
     """
     Inserta o actualiza un expediente y reemplaza sus participantes/abogados.
     participantes: [{tipo, nombre, abogados:[{nombre, tomo_folio, cuit}]}]
@@ -421,8 +467,10 @@ def guardar_expediente(numero: str, anio: str, caratula: str,
 
     cur.execute("""
         INSERT INTO pjn_expedientes
-            (numero, anio, caratula, caja_se_presenta, fecha_analisis, jurisdiccion, juzgado, secretaria, fuente, fecha_inicio)
-        VALUES (%s, %s, %s, %s, NOW(), %s, %s, %s, %s, %s)
+            (numero, anio, caratula, caja_se_presenta, fecha_analisis,
+             jurisdiccion, juzgado, secretaria, fuente,
+             fecha_inicio, url_demanda, fecha_demanda, detalle_demanda)
+        VALUES (%s, %s, %s, %s, NOW(), %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT(numero, anio) DO UPDATE SET
             caratula         = EXCLUDED.caratula,
             caja_se_presenta = EXCLUDED.caja_se_presenta,
@@ -431,10 +479,13 @@ def guardar_expediente(numero: str, anio: str, caratula: str,
             juzgado          = EXCLUDED.juzgado,
             secretaria       = EXCLUDED.secretaria,
             fuente           = EXCLUDED.fuente,
-            fecha_inicio     = COALESCE(EXCLUDED.fecha_inicio, pjn_expedientes.fecha_inicio)
+            fecha_inicio     = COALESCE(EXCLUDED.fecha_inicio,     pjn_expedientes.fecha_inicio),
+            url_demanda      = COALESCE(EXCLUDED.url_demanda,      pjn_expedientes.url_demanda),
+            fecha_demanda    = COALESCE(EXCLUDED.fecha_demanda,    pjn_expedientes.fecha_demanda),
+            detalle_demanda  = COALESCE(EXCLUDED.detalle_demanda,  pjn_expedientes.detalle_demanda)
     """, (str(numero), str(anio), caratula, caja_se_presenta,
           jurisdiccion or "", juzgado or "", secretaria or "", fuente or "Extractor PJN",
-          fecha_inicio or None))
+          fecha_inicio or None, url_demanda or None, fecha_demanda or None, detalle_demanda or None))
 
     cur.execute(
         "SELECT id FROM pjn_expedientes WHERE numero=%s AND anio=%s",

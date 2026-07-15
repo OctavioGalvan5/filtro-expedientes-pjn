@@ -89,13 +89,23 @@ async def expedientes(
     juzgado:    str = Query(default=""),
     secretaria: str = Query(default=""),
     busqueda:   str = Query(default=""),
+    actores:    str = Query(default=""),
+    demandados: str = Query(default=""),
+    terceros:   str = Query(default=""),
 ):
+    def split(s): return [x.strip() for x in s.split(',') if x.strip()] if s else []
     items, total = db.obtener_paginados(
         pagina, por_pagina,
         filtro=busqueda, resultado=resultado,
         juzgado=juzgado, secretaria=secretaria,
+        actores=split(actores), demandados=split(demandados), terceros=split(terceros),
     )
     return {"items": items, "total": total}
+
+
+@app.get("/api/participantes")
+async def participantes():
+    return db.obtener_participantes_por_tipo()
 
 
 @app.get("/api/abogados")
@@ -201,7 +211,15 @@ async def exportar(
     busqueda: str = Query(default=""),
     filtro_ab: str = Query(default=""),
     filtro_representa: str = Query(default=""),
+    actores: str = Query(default=""),
+    demandados: str = Query(default=""),
+    terceros: str = Query(default=""),
 ):
+    def split(s): return [x.strip() for x in s.split(',') if x.strip()] if s else []
+    actores_list = split(actores)
+    demandados_list = split(demandados)
+    terceros_list = split(terceros)
+
     expedientes = db.obtener_todos()
 
     # ── Filtros de expedientes ──────────────────────────────────────────────
@@ -226,6 +244,23 @@ async def exportar(
                     hay += " " + (ab.get("nombre") or "").lower()
             return q in hay
         expedientes = [e for e in expedientes if _matches(e)]
+
+    if actores_list or demandados_list or terceros_list:
+        def _tiene_parte(exp, tipo_key, nombres):
+            if not nombres:
+                return True
+            nombres_lower = {n.lower() for n in nombres}
+            for p in exp.get("participantes", []):
+                if tipo_key in (p.get("tipo") or "").lower():
+                    if (p.get("nombre") or "").lower() in nombres_lower:
+                        return True
+            return False
+        expedientes = [
+            e for e in expedientes
+            if _tiene_parte(e, 'actor',    actores_list)
+            and _tiene_parte(e, 'demandado', demandados_list)
+            and _tiene_parte(e, 'tercero',   terceros_list)
+        ]
 
     # Hoja 1: Expedientes
     exptes_rows = []

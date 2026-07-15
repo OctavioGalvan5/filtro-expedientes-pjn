@@ -21,7 +21,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 
 if hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -267,6 +267,61 @@ def extraer_datos_inicio(driver, tabla_id):
         WebDriverWait(driver, 15).until(EC.staleness_of(primera_fila))
 
     return fecha_ultima, url_demanda, fecha_demanda, detalle_demanda
+
+
+def extraer_datos_inicio_expediente(driver, num, anio):
+    """
+    Navega a 'Nueva Consulta', busca el expediente y extrae en un único pase:
+      - fecha_inicio (fecha más antigua de la última página)
+      - url_demanda, fecha_demanda, detalle_demanda (del ESCRITO+DEMANDA más antiguo)
+    Busca también en históricas. Puede llamarse desde cualquier página del portal.
+    Devuelve un 4-tuple (fecha_inicio, url_demanda, fecha_demanda, detalle_demanda).
+    """
+    # Volver al formulario de búsqueda
+    WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, ID_NUEVA_CONSULTA)))
+    driver.find_element(By.ID, ID_NUEVA_CONSULTA).click()
+    WebDriverWait(driver, 20).until(
+        EC.presence_of_element_located((By.ID, "formPublica:camaraNumAni"))
+    )
+
+    Select(driver.find_element(By.ID, "formPublica:camaraNumAni")).select_by_value("24")
+    campo = driver.find_element(By.ID, "formPublica:numero")
+    campo.clear()
+    campo.send_keys(num)
+    campo = driver.find_element(By.ID, "formPublica:anio")
+    campo.clear()
+    campo.send_keys(anio)
+    driver.find_element(By.ID, "formPublica:buscarPorNumeroButton").click()
+
+    WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.ID, "expediente:action-table"))
+    )
+
+    fecha, url_demanda, fecha_demanda, detalle_demanda = extraer_datos_inicio(
+        driver, "expediente:action-table"
+    )
+    log(f"[Inicio] Última fecha: {fecha} | Demanda: {'sí' if url_demanda else 'no'}")
+
+    try:
+        div = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "expediente:btnActuacionesHistoricas"))
+        )
+        div.find_element(By.TAG_NAME, "a").click()
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.ID, "expediente:action-historic-table"))
+        )
+        f2, u2, fd2, dd2 = extraer_datos_inicio(driver, "expediente:action-historic-table")
+        if f2:
+            fecha = f2
+            log(f"[Historicas] Fecha más antigua: {fecha}")
+        if u2:
+            url_demanda, fecha_demanda, detalle_demanda = u2, fd2, dd2
+    except TimeoutException:
+        log("[Historicas] Sin registros históricos.")
+    except Exception:
+        log(f"[Historicas] Error inesperado: {traceback.format_exc()}")
+
+    return fecha, url_demanda, fecha_demanda, detalle_demanda
 
 
 def _encontrar_boton_siguiente(driver):
@@ -648,24 +703,44 @@ def ejecutar_desde_excel(archivo_entrada, usuario, password,
             driver = None
             resultado = "Error"
             participantes = []
+            jurisdiccion = juzgado = secretaria = ""
+            fecha_inicio = url_demanda = fecha_demanda = detalle_demanda = None
+            inicio_extraido = False
             try:
                 driver = inicializar_navegador(headless=headless)
                 _login_y_abrir_formulario(driver, usuario, password)
                 encontrado, participantes, jurisdiccion, juzgado, secretaria = _buscar_y_procesar(driver, num, anio)
                 resultado = "Si" if encontrado else "No"
                 log(f"[Resultado] Caja se presenta: {resultado}")
+
+                log("[Inicio] Extrayendo fecha y demanda...")
+                try:
+                    fecha_inicio, url_demanda, fecha_demanda, detalle_demanda = \
+                        extraer_datos_inicio_expediente(driver, num, anio)
+                    inicio_extraido = True
+                    log(f"[Inicio] fecha_inicio={fecha_inicio}"
+                        + (f" | fecha_demanda={fecha_demanda}" if fecha_demanda else "")
+                        + f" | demanda={'sí' if url_demanda else 'no'}")
+                except Exception:
+                    log(f"[Inicio] Error extrayendo datos de inicio:\n{traceback.format_exc()}")
+
             except KeyboardInterrupt:
                 raise
             except Exception:
                 log(f"[Error] Fallo al procesar {num}/{anio}:\n{traceback.format_exc()}")
-                jurisdiccion = juzgado = secretaria = ""
             finally:
                 if driver:
                     driver.quit()
 
             try:
-                db.guardar_expediente(num, anio, caratula, resultado, participantes,
-                                      jurisdiccion, juzgado, secretaria, fuente)
+                db.guardar_expediente(
+                    num, anio, caratula, resultado, participantes,
+                    jurisdiccion, juzgado, secretaria, fuente,
+                    fecha_inicio=fecha_inicio,
+                    url_demanda=(url_demanda or "NINGUNA") if inicio_extraido else None,
+                    fecha_demanda=fecha_demanda,
+                    detalle_demanda=detalle_demanda,
+                )
             except Exception:
                 log(f"[Error] Fallo al guardar en BD {num}/{anio}:\n{traceback.format_exc()}")
 
