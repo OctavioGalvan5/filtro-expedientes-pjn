@@ -176,6 +176,37 @@ def _procesar_filas(driver, filas_datos, pagina_num):
     return hallazgos
 
 
+def extraer_fecha_ultima_fila(driver, tabla_id):
+    """Navega hasta la última página de la tabla y devuelve la fecha de la última fila."""
+    try:
+        while _boton_siguiente_habilitado(driver):
+            WebDriverWait(driver, 20).until(
+                EC.visibility_of_element_located((By.ID, tabla_id))
+            )
+            filas = driver.find_element(By.ID, tabla_id).find_elements(By.TAG_NAME, "tr")
+            primera_fila = filas[1] if len(filas) > 1 else None
+            driver.find_element(By.XPATH, "//span[@title='Siguiente']").click()
+            if primera_fila:
+                WebDriverWait(driver, 15).until(EC.staleness_of(primera_fila))
+
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.ID, tabla_id))
+        )
+        filas = driver.find_element(By.ID, tabla_id).find_elements(By.TAG_NAME, "tr")[1:]
+        if not filas:
+            return None
+        celdas = filas[-1].find_elements(By.TAG_NAME, "td")
+        if len(celdas) > 2:
+            for span in celdas[2].find_elements(By.TAG_NAME, "span"):
+                texto = span.text.strip()
+                if texto:
+                    return texto
+        return None
+    except Exception as e:
+        log(f"[FechaInicio] Error extrayendo fecha: {e}")
+        return None
+
+
 def _boton_siguiente_habilitado(driver):
     try:
         span = driver.find_element(By.XPATH, "//span[@title='Siguiente']")

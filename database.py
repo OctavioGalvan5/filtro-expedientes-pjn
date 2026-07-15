@@ -66,6 +66,9 @@ def inicializar_db():
     cur.execute(
         "ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS fuente TEXT DEFAULT 'Extractor PJN'"
     )
+    cur.execute(
+        "ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS fecha_inicio TEXT"
+    )
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS pjn_participantes (
@@ -349,6 +352,35 @@ def obtener_todos() -> list:
 # ---------------------------------------------------------------------------
 # Escritura
 # ---------------------------------------------------------------------------
+def obtener_sin_fecha_inicio() -> list:
+    """Retorna lista de dicts {id, numero, anio, caratula} sin fecha_inicio."""
+    con = _connect()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("""
+        SELECT id, numero, anio, caratula
+        FROM pjn_expedientes
+        WHERE fecha_inicio IS NULL OR fecha_inicio = ''
+        ORDER BY id
+    """)
+    rows = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    con.close()
+    return rows
+
+
+def actualizar_fecha_inicio(id: int, fecha_inicio: str):
+    """Actualiza solo la fecha_inicio de un expediente por su id."""
+    con = _connect()
+    cur = con.cursor()
+    cur.execute(
+        "UPDATE pjn_expedientes SET fecha_inicio = %s WHERE id = %s",
+        (fecha_inicio, id)
+    )
+    con.commit()
+    cur.close()
+    con.close()
+
+
 def eliminar_expediente(id: int):
     """Elimina un expediente y sus participantes/abogados en cascada."""
     con = _connect()
@@ -362,7 +394,7 @@ def eliminar_expediente(id: int):
 def guardar_expediente(numero: str, anio: str, caratula: str,
                        caja_se_presenta: str, participantes: list = None,
                        jurisdiccion: str = "", juzgado: str = "", secretaria: str = "",
-                       fuente: str = "Extractor PJN"):
+                       fuente: str = "Extractor PJN", fecha_inicio: str = ""):
     """
     Inserta o actualiza un expediente y reemplaza sus participantes/abogados.
     participantes: [{tipo, nombre, abogados:[{nombre, tomo_folio, cuit}]}]
@@ -375,8 +407,8 @@ def guardar_expediente(numero: str, anio: str, caratula: str,
 
     cur.execute("""
         INSERT INTO pjn_expedientes
-            (numero, anio, caratula, caja_se_presenta, fecha_analisis, jurisdiccion, juzgado, secretaria, fuente)
-        VALUES (%s, %s, %s, %s, NOW(), %s, %s, %s, %s)
+            (numero, anio, caratula, caja_se_presenta, fecha_analisis, jurisdiccion, juzgado, secretaria, fuente, fecha_inicio)
+        VALUES (%s, %s, %s, %s, NOW(), %s, %s, %s, %s, %s)
         ON CONFLICT(numero, anio) DO UPDATE SET
             caratula         = EXCLUDED.caratula,
             caja_se_presenta = EXCLUDED.caja_se_presenta,
@@ -384,9 +416,11 @@ def guardar_expediente(numero: str, anio: str, caratula: str,
             jurisdiccion     = EXCLUDED.jurisdiccion,
             juzgado          = EXCLUDED.juzgado,
             secretaria       = EXCLUDED.secretaria,
-            fuente           = EXCLUDED.fuente
+            fuente           = EXCLUDED.fuente,
+            fecha_inicio     = COALESCE(EXCLUDED.fecha_inicio, pjn_expedientes.fecha_inicio)
     """, (str(numero), str(anio), caratula, caja_se_presenta,
-          jurisdiccion or "", juzgado or "", secretaria or "", fuente or "Extractor PJN"))
+          jurisdiccion or "", juzgado or "", secretaria or "", fuente or "Extractor PJN",
+          fecha_inicio or None))
 
     cur.execute(
         "SELECT id FROM pjn_expedientes WHERE numero=%s AND anio=%s",
