@@ -255,30 +255,56 @@ def extraer_datos_inicio(driver, tabla_id):
             except StaleElementReferenceException:
                 pass
 
-        if not _boton_siguiente_habilitado(driver):
+        btn_sig = _encontrar_boton_siguiente(driver)
+        if not btn_sig:
             break
 
         primera_fila = filas[0]
-        driver.find_element(By.XPATH, "//span[@title='Siguiente']").click()
+        btn_sig.click()
         WebDriverWait(driver, 15).until(EC.staleness_of(primera_fila))
 
     return fecha_ultima, url_demanda, fecha_demanda
 
 
-def _boton_siguiente_habilitado(driver):
+def _encontrar_boton_siguiente(driver):
+    """
+    Devuelve el elemento clickeable del botón Siguiente, o None si no hay más páginas.
+    Soporta dos formatos del portal PJN:
+      - Formato A (actuaciones): <span title='Siguiente'>
+      - Formato B (históricas):  <a class='padding-pagination'>...<span>Siguiente</span></a>
+    """
+    # Formato A
     try:
         span = driver.find_element(By.XPATH, "//span[@title='Siguiente']")
-        if not span.is_displayed():
-            return False
-        elem = span
-        for _ in range(3):
-            parent = elem.find_element(By.XPATH, "..")
-            if "disabled" in (parent.get_attribute("class") or "").lower():
-                return False
-            elem = parent
-        return True
+        if span.is_displayed():
+            elem = span
+            for _ in range(3):
+                parent = elem.find_element(By.XPATH, "..")
+                if "disabled" in (parent.get_attribute("class") or "").lower():
+                    break
+                elem = parent
+            else:
+                return span
     except Exception:
-        return False
+        pass
+
+    # Formato B
+    try:
+        a = driver.find_element(
+            By.XPATH, "//a[contains(@class,'padding-pagination') and contains(.,'Siguiente')]"
+        )
+        if a.is_displayed():
+            parent = a.find_element(By.XPATH, "..")
+            if "disabled" not in (parent.get_attribute("class") or "").lower():
+                return a
+    except Exception:
+        pass
+
+    return None
+
+
+def _boton_siguiente_habilitado(driver):
+    return _encontrar_boton_siguiente(driver) is not None
 
 
 def extraer_jurisdiccion_dependencia(driver):
@@ -412,13 +438,14 @@ def procesar_tabla_paginada(driver, tabla_id, seccion_nombre):
         if todos_hallazgos:
             break
 
-        if not _boton_siguiente_habilitado(driver):
+        btn_sig = _encontrar_boton_siguiente(driver)
+        if not btn_sig:
             log(f"[{seccion_nombre}] Última página. Total: {pagina_num} página(s).")
             break
 
         log(f"[{seccion_nombre}] Avanzando a página {pagina_num + 1}...")
         primera_fila = filas_datos[0] if filas_datos else None
-        driver.find_element(By.XPATH, "//span[@title='Siguiente']").click()
+        btn_sig.click()
 
         if primera_fila:
             WebDriverWait(driver, 15).until(EC.staleness_of(primera_fila))
