@@ -261,9 +261,6 @@
                   <th class="text-left">Actor</th>
                   <th class="text-left">Demandado</th>
                   <th class="text-center">Resultado</th>
-                  <th class="text-center">Abogados</th>
-                  <th class="text-left">Fuente</th>
-                  <th class="text-center">Analizado</th>
                   <th class="text-center">F. Inicio</th>
                   <th class="text-center">Demanda</th>
                   <th class="text-center"></th>
@@ -290,12 +287,6 @@
                             :class="{'badge-si':exp.caja_se_presenta==='Si','badge-no':exp.caja_se_presenta==='No','badge-err':!['Si','No'].includes(exp.caja_se_presenta)}"
                             x-text="exp.caja_se_presenta||'—'"></span>
                     </td>
-                    <td class="px-4 py-2.5 text-center text-slate-500"
-                        x-text="(exp.participantes||[]).reduce((s,p)=>s+(p.abogados||[]).length,0)"></td>
-                    <td class="px-4 py-2.5 text-slate-400 text-xs truncate max-w-[120px]"
-                        x-text="exp.fuente||'—'"></td>
-                    <td class="px-4 py-2.5 text-slate-400 text-xs font-mono text-center"
-                        x-text="(exp.fecha_analisis||'').substring(0,10)"></td>
                     <td class="px-4 py-2.5 text-slate-500 text-xs font-mono text-center"
                         x-text="exp.fecha_inicio || '—'"></td>
                     <td class="px-2 py-2.5 text-center" @click.stop>
@@ -326,7 +317,7 @@
                   </tr>
                 </template>
                 <tr x-show="expedientesPagina.length===0">
-                  <td colspan="10" class="px-4 py-12 text-center text-slate-400 text-sm">
+                  <td colspan="7" class="px-4 py-12 text-center text-slate-400 text-sm">
                     Ningún expediente coincide con el filtro.
                   </td>
                 </tr>
