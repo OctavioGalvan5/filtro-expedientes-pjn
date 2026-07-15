@@ -162,27 +162,43 @@ def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "") -> tuple:
     )
     expedientes = cur.fetchall()
 
-    # Cargar participantes y abogados solo para la página actual
+    if not expedientes:
+        cur.close()
+        con.close()
+        return [], total
+
+    # Una sola query para todos los participantes de la página
+    exp_ids = [exp["id"] for exp in expedientes]
+    cur.execute(
+        "SELECT * FROM pjn_participantes WHERE expediente_id = ANY(%s) ORDER BY id",
+        (exp_ids,)
+    )
+    participantes = cur.fetchall()
+
+    # Una sola query para todos los abogados de esos participantes
+    part_ids = [p["id"] for p in participantes]
+    abogados_por_part = {}
+    if part_ids:
+        cur.execute(
+            "SELECT * FROM pjn_abogados WHERE participante_id = ANY(%s) ORDER BY id",
+            (part_ids,)
+        )
+        for ab in cur.fetchall():
+            abogados_por_part.setdefault(ab["participante_id"], []).append(dict(ab))
+
+    # Agrupar participantes por expediente
+    parts_por_exp = {}
+    for p in participantes:
+        p_dict = dict(p)
+        p_dict["abogados"] = abogados_por_part.get(p["id"], [])
+        parts_por_exp.setdefault(p["expediente_id"], []).append(p_dict)
+
     result = []
     for exp in expedientes:
         exp_dict = dict(exp)
         if exp_dict.get("fecha_analisis"):
             exp_dict["fecha_analisis"] = str(exp_dict["fecha_analisis"])
-
-        cur.execute(
-            "SELECT * FROM pjn_participantes WHERE expediente_id=%s ORDER BY id",
-            (exp["id"],)
-        )
-        exp_dict["participantes"] = []
-        for p in cur.fetchall():
-            p_dict = dict(p)
-            cur.execute(
-                "SELECT * FROM pjn_abogados WHERE participante_id=%s ORDER BY id",
-                (p["id"],)
-            )
-            p_dict["abogados"] = [dict(ab) for ab in cur.fetchall()]
-            exp_dict["participantes"].append(p_dict)
-
+        exp_dict["participantes"] = parts_por_exp.get(exp["id"], [])
         result.append(exp_dict)
 
     cur.close()
