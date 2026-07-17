@@ -828,7 +828,7 @@
                 </tr>
               </thead>
               <tbody>
-                <template x-for="item in (panelDer?.expedientes||[])" :key="item.exp.id">
+                <template x-for="(item, i) in (panelDer?.expedientes||[])" :key="i">
                   <tr class="tbl-row">
                     <td class="px-4 py-2.5 font-mono text-slate-700 text-xs whitespace-nowrap font-semibold"
                         x-text="item.exp.numero + ' / ' + item.exp.anio"></td>

@@ -149,6 +149,7 @@ def obtener_abogados_stats(filtro_ab: str = "", filtro_representa: str = "") -> 
             a.nombre                AS nombre,
             a.tomo_folio            AS tomo_folio,
             a.cuit                  AS cuit,
+            p.tipo                  AS parte_tipo,
             p.nombre                AS parte_nombre,
             e.id                    AS exp_id,
             e.caja_se_presenta      AS resultado
@@ -170,9 +171,16 @@ def obtener_abogados_stats(filtro_ab: str = "", filtro_representa: str = "") -> 
                 "total": 0, "si": 0, "no": 0, "error": 0,
                 "_exp_ids":   set(),
                 "_partes":    set(),
+                "_detalle":   [],
             }
         entry = mapa[key]
         entry["_partes"].add((r["parte_nombre"] or "").lower())
+        entry["_detalle"].append({
+            "exp_id":      r["exp_id"],
+            "parte_tipo":  r["parte_tipo"] or "",
+            "parte_nombre": r["parte_nombre"] or "",
+            "resultado":   r["resultado"],
+        })
         if r["exp_id"] not in entry["_exp_ids"]:
             entry["_exp_ids"].add(r["exp_id"])
             entry["total"] += 1
@@ -198,17 +206,21 @@ def obtener_abogados_stats(filtro_ab: str = "", filtro_representa: str = "") -> 
     cur.close()
     con.close()
 
-    # Reconstruir con lista de expedientes
+    # Reconstruir con lista de expedientes en formato que espera el frontend
     for entry in mapa.values():
         entry["expedientes"] = [
             {
-                "exp_id":   eid,
-                "numero":   exp_data[eid]["numero"],
-                "anio":     exp_data[eid]["anio"],
-                "caratula": exp_data[eid]["caratula"] or "",
-                "resultado": exp_data[eid]["caja_se_presenta"],
+                "exp": {
+                    "id":               d["exp_id"],
+                    "numero":           exp_data[d["exp_id"]]["numero"],
+                    "anio":             exp_data[d["exp_id"]]["anio"],
+                    "caratula":         exp_data[d["exp_id"]]["caratula"] or "",
+                    "caja_se_presenta": exp_data[d["exp_id"]]["caja_se_presenta"],
+                },
+                "parte_tipo":  d["parte_tipo"],
+                "parte_nombre": d["parte_nombre"],
             }
-            for eid in entry["_exp_ids"] if eid in exp_data
+            for d in entry["_detalle"] if d["exp_id"] in exp_data
         ]
 
     result = [
