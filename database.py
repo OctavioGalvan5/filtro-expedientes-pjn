@@ -9,6 +9,16 @@ import psycopg2
 import psycopg2.extras
 
 
+def _strip_label(s: str) -> str:
+    """Elimina prefijos como 'TIPO : ' o 'NOMBRE : ' que el scraper almacena junto al valor."""
+    s = (s or "").strip()
+    low = s.lower()
+    for prefix in ("tipo : ", "nombre : ", "tipo:", "nombre:"):
+        if low.startswith(prefix):
+            return s[len(prefix):].strip()
+    return s
+
+
 # ---------------------------------------------------------------------------
 # URL de conexion
 # ---------------------------------------------------------------------------
@@ -175,14 +185,16 @@ def obtener_abogados_stats(filtro_ab: str = "", filtro_representa: str = "") -> 
                 "_representados": {},
             }
         entry = mapa[key]
-        entry["_partes"].add((r["parte_nombre"] or "").lower())
+        parte_tipo  = _strip_label(r["parte_tipo"])
+        parte_nombre = _strip_label(r["parte_nombre"])
+        entry["_partes"].add(parte_nombre.lower())
         entry["_detalle"].append({
             "exp_id":       r["exp_id"],
-            "parte_tipo":   r["parte_tipo"] or "",
-            "parte_nombre": r["parte_nombre"] or "",
+            "parte_tipo":   parte_tipo,
+            "parte_nombre": parte_nombre,
             "resultado":    r["resultado"],
         })
-        rep_key = (r["parte_tipo"] or "", r["parte_nombre"] or "")
+        rep_key = (parte_tipo, parte_nombre)
         if rep_key not in entry["_representados"]:
             entry["_representados"][rep_key] = {"total": 0, "si": 0, "no": 0, "error": 0}
         rep = entry["_representados"][rep_key]

@@ -825,7 +825,7 @@
                   <span class="px-1.5 py-0.5 rounded text-xs font-bold uppercase flex-shrink-0"
                         :class="{'pill-actor':rep.parte_tipo.toLowerCase().includes('actor'),'pill-demandado':rep.parte_tipo.toLowerCase().includes('demandado'),'pill-tercero':rep.parte_tipo.toLowerCase().includes('tercero'),'pill-otro':!['actor','demandado','tercero'].some(t=>rep.parte_tipo.toLowerCase().includes(t))}"
                         x-text="rep.parte_tipo||'PARTE'"></span>
-                  <span class="text-sm text-slate-700 flex-1 truncate" x-text="rep.parte_nombre||'—'"></span>
+                  <span class="text-sm text-slate-700 flex-1 break-words" x-text="rep.parte_nombre||'—'"></span>
                   <span class="text-sm font-bold text-slate-800 tabular-nums" x-text="rep.total"></span>
                   <span class="text-xs text-slate-400">exp.</span>
                 </div>
