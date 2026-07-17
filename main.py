@@ -83,15 +83,18 @@ async def stats():
 
 @app.get("/api/expedientes")
 async def expedientes(
-    pagina:     int = Query(default=1,  ge=1),
-    por_pagina: int = Query(default=50, ge=1, le=200),
-    resultado:  str = Query(default=""),
-    juzgado:    str = Query(default=""),
-    secretaria: str = Query(default=""),
-    busqueda:   str = Query(default=""),
-    actores:    str = Query(default=""),
-    demandados: str = Query(default=""),
-    terceros:   str = Query(default=""),
+    pagina:       int = Query(default=1,  ge=1),
+    por_pagina:   int = Query(default=50, ge=1, le=200),
+    resultado:    str = Query(default=""),
+    juzgado:      str = Query(default=""),
+    secretaria:   str = Query(default=""),
+    busqueda:     str = Query(default=""),
+    actores:      str = Query(default=""),
+    demandados:   str = Query(default=""),
+    terceros:     str = Query(default=""),
+    con_demanda:  str = Query(default=""),
+    fecha_desde:  str = Query(default=""),
+    fecha_hasta:  str = Query(default=""),
 ):
     def split(s): return [x.strip() for x in s.split(',') if x.strip()] if s else []
     items, total = db.obtener_paginados(
@@ -99,6 +102,7 @@ async def expedientes(
         filtro=busqueda, resultado=resultado,
         juzgado=juzgado, secretaria=secretaria,
         actores=split(actores), demandados=split(demandados), terceros=split(terceros),
+        con_demanda=bool(con_demanda), fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
     )
     return {"items": items, "total": total}
 
@@ -214,6 +218,9 @@ async def exportar(
     actores: str = Query(default=""),
     demandados: str = Query(default=""),
     terceros: str = Query(default=""),
+    con_demanda: str = Query(default=""),
+    fecha_desde: str = Query(default=""),
+    fecha_hasta: str = Query(default=""),
 ):
     def split(s): return [x.strip() for x in s.split(',') if x.strip()] if s else []
     actores_list = split(actores)
@@ -261,6 +268,35 @@ async def exportar(
             and _tiene_parte(e, 'demandado', demandados_list)
             and _tiene_parte(e, 'tercero',   terceros_list)
         ]
+
+    if con_demanda:
+        expedientes = [
+            e for e in expedientes
+            if e.get("url_demanda") and e.get("url_demanda") not in ("NINGUNA", "")
+        ]
+
+    if fecha_desde or fecha_hasta:
+        from datetime import date as _date
+        def _parse_fecha(f):
+            if not f:
+                return None
+            try:
+                d, m, y = f.split('/')
+                return _date(int(y), int(m), int(d))
+            except Exception:
+                return None
+        desde = _date.fromisoformat(fecha_desde) if fecha_desde else None
+        hasta = _date.fromisoformat(fecha_hasta) if fecha_hasta else None
+        def _en_rango(e):
+            fd = _parse_fecha(e.get("fecha_inicio"))
+            if fd is None:
+                return False
+            if desde and fd < desde:
+                return False
+            if hasta and fd > hasta:
+                return False
+            return True
+        expedientes = [e for e in expedientes if _en_rango(e)]
 
     # Hoja 1: Expedientes
     exptes_rows = []

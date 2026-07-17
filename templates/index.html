@@ -264,6 +264,37 @@
                      @input.debounce.400ms="aplicarFiltros()"/>
             </div>
 
+            <!-- Filtro con demanda + rango fecha inicio -->
+            <div class="flex items-center gap-2.5">
+              <button @click="filtroConDemanda = !filtroConDemanda; aplicarFiltros()"
+                      class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
+                      :class="filtroConDemanda
+                        ? 'border border-blue-300 text-blue-700' : 'border border-slate-200 text-slate-500 hover:border-slate-300'"
+                      :style="filtroConDemanda ? 'background:rgba(59,130,246,.1)' : 'background:#fff'">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Con demanda
+              </button>
+              <div class="flex items-center gap-1.5 flex-1">
+                <span class="text-xs text-slate-400 flex-shrink-0">F. Inicio:</span>
+                <input type="date" x-model="filtroFechaDesde" @change="aplicarFiltros()"
+                       class="inp text-xs flex-1" title="Fecha inicio desde">
+                <span class="text-xs text-slate-300">—</span>
+                <input type="date" x-model="filtroFechaHasta" @change="aplicarFiltros()"
+                       class="inp text-xs flex-1" title="Fecha inicio hasta">
+                <button x-show="filtroFechaDesde || filtroFechaHasta"
+                        @click="filtroFechaDesde=''; filtroFechaHasta=''; aplicarFiltros()"
+                        class="text-slate-400 hover:text-slate-600 flex-shrink-0 transition-colors"
+                        title="Limpiar fechas">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
             <!-- Filtros por participante -->
             <div class="flex items-center gap-2"
                  x-show="participantes.actor.length || participantes.demandado.length || participantes.tercero.length">
@@ -850,6 +881,9 @@ function app() {
     filtroTxt: '',
     filtroJuzgado: '',
     filtroSecretaria: '',
+    filtroConDemanda: false,
+    filtroFechaDesde: '',
+    filtroFechaHasta: '',
     confirmandoEliminar: false,
 
     // Filtros participantes
@@ -891,6 +925,9 @@ function app() {
       if (this.filtroActores.length)        p.set('actores',     this.filtroActores.join(','));
       if (this.filtroDemandados.length)     p.set('demandados',  this.filtroDemandados.join(','));
       if (this.filtroTerceros.length)       p.set('terceros',    this.filtroTerceros.join(','));
+      if (this.filtroConDemanda)            p.set('con_demanda', '1');
+      if (this.filtroFechaDesde)            p.set('fecha_desde', this.filtroFechaDesde);
+      if (this.filtroFechaHasta)            p.set('fecha_hasta', this.filtroFechaHasta);
       const data = await fetch('/api/expedientes?' + p).then(r => r.json());
       this.expedientesPagina = data.items;
       this.totalExp = data.total;
@@ -949,9 +986,12 @@ function app() {
       if (this.filtroJuzgado)           p.set('juzgado',    this.filtroJuzgado);
       if (this.filtroSecretaria)        p.set('secretaria', this.filtroSecretaria);
       if (this.filtroTxt)               p.set('busqueda',   this.filtroTxt);
-      if (this.filtroActores.length)    p.set('actores',    this.filtroActores.join(','));
-      if (this.filtroDemandados.length) p.set('demandados', this.filtroDemandados.join(','));
-      if (this.filtroTerceros.length)   p.set('terceros',   this.filtroTerceros.join(','));
+      if (this.filtroActores.length)    p.set('actores',     this.filtroActores.join(','));
+      if (this.filtroDemandados.length) p.set('demandados',  this.filtroDemandados.join(','));
+      if (this.filtroTerceros.length)   p.set('terceros',    this.filtroTerceros.join(','));
+      if (this.filtroConDemanda)        p.set('con_demanda', '1');
+      if (this.filtroFechaDesde)        p.set('fecha_desde', this.filtroFechaDesde);
+      if (this.filtroFechaHasta)        p.set('fecha_hasta', this.filtroFechaHasta);
       window.location.href = '/api/exportar?' + p.toString();
     },
 

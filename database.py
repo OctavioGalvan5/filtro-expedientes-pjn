@@ -285,7 +285,8 @@ def obtener_participantes_por_tipo() -> dict:
 
 def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "",
                       resultado: str = "", juzgado: str = "", secretaria: str = "",
-                      actores: list = None, demandados: list = None, terceros: list = None) -> tuple:
+                      actores: list = None, demandados: list = None, terceros: list = None,
+                      con_demanda: bool = False, fecha_desde: str = "", fecha_hasta: str = "") -> tuple:
     """
     Retorna (expedientes, total) para la página dada.
     expedientes: lista de dicts con participantes y abogados anidados.
@@ -340,6 +341,27 @@ def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "",
                 )
             """)
             params.extend([[n.lower() for n in nombres], f'%{tipo_key}%'])
+
+    if con_demanda:
+        conditions.append(
+            "e.url_demanda IS NOT NULL AND e.url_demanda NOT IN ('NINGUNA', '')"
+        )
+
+    if fecha_desde:
+        conditions.append(
+            "e.fecha_inicio IS NOT NULL AND e.fecha_inicio != ''"
+            " AND e.fecha_inicio ~ '^\\d{1,2}/\\d{1,2}/\\d{4}$'"
+            " AND TO_DATE(e.fecha_inicio, 'DD/MM/YYYY') >= %s::date"
+        )
+        params.append(fecha_desde)
+
+    if fecha_hasta:
+        conditions.append(
+            "e.fecha_inicio IS NOT NULL AND e.fecha_inicio != ''"
+            " AND e.fecha_inicio ~ '^\\d{1,2}/\\d{1,2}/\\d{4}$'"
+            " AND TO_DATE(e.fecha_inicio, 'DD/MM/YYYY') <= %s::date"
+        )
+        params.append(fecha_hasta)
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
