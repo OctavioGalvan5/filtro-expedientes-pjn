@@ -169,18 +169,28 @@ def obtener_abogados_stats(filtro_ab: str = "", filtro_representa: str = "") -> 
                 "tomo_folio": r["tomo_folio"] or "",
                 "cuit":       r["cuit"] or "",
                 "total": 0, "si": 0, "no": 0, "error": 0,
-                "_exp_ids":   set(),
-                "_partes":    set(),
-                "_detalle":   [],
+                "_exp_ids":       set(),
+                "_partes":        set(),
+                "_detalle":       [],
+                "_representados": {},
             }
         entry = mapa[key]
         entry["_partes"].add((r["parte_nombre"] or "").lower())
         entry["_detalle"].append({
-            "exp_id":      r["exp_id"],
-            "parte_tipo":  r["parte_tipo"] or "",
+            "exp_id":       r["exp_id"],
+            "parte_tipo":   r["parte_tipo"] or "",
             "parte_nombre": r["parte_nombre"] or "",
-            "resultado":   r["resultado"],
+            "resultado":    r["resultado"],
         })
+        rep_key = (r["parte_tipo"] or "", r["parte_nombre"] or "")
+        if rep_key not in entry["_representados"]:
+            entry["_representados"][rep_key] = {"total": 0, "si": 0, "no": 0, "error": 0}
+        rep = entry["_representados"][rep_key]
+        rep["total"] += 1
+        res_r = r["resultado"]
+        if res_r == "Si":   rep["si"]    += 1
+        elif res_r == "No": rep["no"]    += 1
+        else:               rep["error"] += 1
         if r["exp_id"] not in entry["_exp_ids"]:
             entry["_exp_ids"].add(r["exp_id"])
             entry["total"] += 1
@@ -208,6 +218,13 @@ def obtener_abogados_stats(filtro_ab: str = "", filtro_representa: str = "") -> 
 
     # Reconstruir con lista de expedientes en formato que espera el frontend
     for entry in mapa.values():
+        entry["representados"] = sorted(
+            [
+                {"parte_tipo": k[0], "parte_nombre": k[1], **v}
+                for k, v in entry["_representados"].items()
+            ],
+            key=lambda x: -x["total"],
+        )
         entry["expedientes"] = [
             {
                 "exp": {
