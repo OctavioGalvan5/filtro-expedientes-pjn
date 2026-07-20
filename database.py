@@ -268,6 +268,22 @@ def obtener_abogados_stats(filtro_ab: str = "", filtro_representa: str = "") -> 
     return result
 
 
+def obtener_con_error() -> list:
+    """Retorna expedientes con caja_se_presenta NOT IN ('Si', 'No'), ordenados por fecha desc."""
+    con = _connect()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("""
+        SELECT id, numero, anio, caratula, caja_se_presenta
+        FROM pjn_expedientes
+        WHERE caja_se_presenta NOT IN ('Si', 'No')
+        ORDER BY fecha_analisis DESC NULLS LAST
+    """)
+    rows = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    con.close()
+    return rows
+
+
 def ya_fue_procesado(numero: str, anio: str) -> bool:
     """True si el expediente ya existe en la BD (con cualquier resultado)."""
     con = _connect()

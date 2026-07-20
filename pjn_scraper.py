@@ -583,11 +583,12 @@ def extraer_intervinientes(driver):
         driver.find_element(By.XPATH,
             "//span[contains(@class,'rf-tab-lbl') and normalize-space()='Actuaciones']"
         ).click()
-        # Esperar visibilidad completa (no solo presencia) y dar tiempo al DOM a estabilizarse
-        WebDriverWait(driver, 10).until(
-            EC.visibility_of_element_located((By.ID, "expediente:action-table"))
-        )
         time.sleep(1)
+        # Solo esperar la tabla si el expediente tiene actuaciones
+        if driver.find_elements(By.ID, "expediente:action-table"):
+            WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located((By.ID, "expediente:action-table"))
+            )
     except Exception as e:
         log(f"[Intervinientes] Error volviendo a Actuaciones: {e}")
 
@@ -710,8 +711,12 @@ def _buscar_y_procesar(driver, num_expediente, anio_expediente):
 
     driver.find_element(By.ID, "formPublica:buscarPorNumeroButton").click()
 
+    # Esperar que cargue la página del expediente: puede tener o no actuaciones.
+    # El tab "Intervinientes" siempre aparece; action-table solo si hay actuaciones.
     WebDriverWait(driver, 30).until(
-        EC.presence_of_element_located((By.ID, "expediente:action-table"))
+        lambda d: d.find_elements(By.ID, "expediente:action-table") or
+                  d.find_elements(By.XPATH,
+                      "//span[contains(@class,'rf-tab-lbl') and normalize-space()='Intervinientes']")
     )
 
     jurisdiccion, juzgado, secretaria = extraer_jurisdiccion_dependencia(driver)
@@ -719,8 +724,13 @@ def _buscar_y_procesar(driver, num_expediente, anio_expediente):
 
     participantes = extraer_intervinientes(driver)
 
-    hallazgos, fecha_inicio, url_demanda, fecha_demanda, detalle_demanda = \
-        _procesar_tabla_completa(driver, "expediente:action-table", "Actuaciones")
+    tiene_actuaciones = bool(driver.find_elements(By.ID, "expediente:action-table"))
+    if tiene_actuaciones:
+        hallazgos, fecha_inicio, url_demanda, fecha_demanda, detalle_demanda = \
+            _procesar_tabla_completa(driver, "expediente:action-table", "Actuaciones")
+    else:
+        log("[Actuaciones] Sin tabla de actuaciones en este expediente.")
+        hallazgos, fecha_inicio, url_demanda, fecha_demanda, detalle_demanda = [], None, None, None, None
 
     # Históricas: siempre para fecha/demanda más antigua;
     # buscar frase solo si todavía no fue encontrada.
@@ -898,6 +908,85 @@ def ejecutar_desde_excel(archivo_entrada, usuario, password,
         log("[Interrumpido] La proxima ejecucion retomara desde el ultimo expediente pendiente.")
     except Exception:
         log(f"[Error] Error en el proceso batch:\n{traceback.format_exc()}")
+
+
+def ejecutar_lista(lista, usuario, password, headless=False, on_progreso=None):
+    """
+    Reintenta una lista de expedientes (dicts con numero, anio, caratula).
+    No verifica ya_fue_procesado — siempre reprocesa y sobreescribe en BD.
+    """
+    global _stop_requested
+    _stop_requested = False
+
+    total = len(lista)
+
+    try:
+        db.inicializar_db()
+
+        for idx, item in enumerate(lista, start=1):
+            if _stop_requested:
+                log("[Detenido] El usuario detuvo el proceso.")
+                break
+
+            num      = str(item.get("numero", "")).strip()
+            anio     = str(item.get("anio", "")).strip()
+            caratula = str(item.get("caratula") or "").strip()
+
+            print(f"\n{'='*60}")
+            log(f"[{idx}/{total}] {caratula}")
+            log(f"        Expediente: {num} / {anio}")
+            print(f"{'='*60}")
+
+            if not num or not anio:
+                log("[Saltando] Fila sin numero o año.")
+                continue
+
+            driver = None
+            resultado = "Error"
+            participantes = []
+            jurisdiccion = juzgado = secretaria = ""
+            fecha_inicio = url_demanda = fecha_demanda = detalle_demanda = None
+            try:
+                driver = inicializar_navegador(headless=headless)
+                _login_y_abrir_formulario(driver, usuario, password)
+                (encontrado, participantes, jurisdiccion, juzgado, secretaria,
+                 fecha_inicio, url_demanda, fecha_demanda, detalle_demanda) = \
+                    _buscar_y_procesar(driver, num, anio)
+                resultado = "Si" if encontrado else "No"
+                log(f"[Resultado] Caja se presenta: {resultado}")
+                log(f"[Inicio] fecha_inicio={fecha_inicio}"
+                    + (f" | fecha_demanda={fecha_demanda}" if fecha_demanda else "")
+                    + f" | demanda={'sí' if url_demanda else 'no'}")
+            except KeyboardInterrupt:
+                raise
+            except Exception:
+                log(f"[Error] Fallo al procesar {num}/{anio}:\n{traceback.format_exc()}")
+            finally:
+                if driver:
+                    driver.quit()
+
+            try:
+                db.guardar_expediente(
+                    num, anio, caratula, resultado, participantes,
+                    jurisdiccion, juzgado, secretaria, "Reintento",
+                    fecha_inicio=fecha_inicio,
+                    url_demanda=url_demanda or "NINGUNA",
+                    fecha_demanda=fecha_demanda,
+                    detalle_demanda=detalle_demanda,
+                )
+            except Exception:
+                log(f"[Error] Fallo al guardar en BD {num}/{anio}:\n{traceback.format_exc()}")
+
+            if on_progreso:
+                on_progreso(idx, total)
+
+        log("[Exito] Reintento completado. Resultados actualizados en PostgreSQL.")
+
+    except KeyboardInterrupt:
+        print("\n")
+        log("[Interrumpido] Proceso detenido. Progreso guardado en la BD.")
+    except Exception:
+        log(f"[Error] Error en el proceso de reintento:\n{traceback.format_exc()}")
 
 
 if __name__ == "__main__":
