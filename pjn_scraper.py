@@ -201,7 +201,7 @@ def _procesar_tabla_completa(driver, tabla_id, seccion_nombre, buscar_frase=True
         filas_datos = None
         for intento in range(3):
             try:
-                WebDriverWait(driver, 20).until(
+                WebDriverWait(driver, 45).until(
                     EC.presence_of_element_located((By.ID, tabla_id))
                 )
                 filas_datos = driver.find_element(By.ID, tabla_id).find_elements(By.TAG_NAME, "tr")[1:]
@@ -298,9 +298,10 @@ def _procesar_tabla_completa(driver, tabla_id, seccion_nombre, buscar_frase=True
         primera_fila = filas_datos[0] if filas_datos else None
         btn_sig.click()
         if primera_fila:
-            WebDriverWait(driver, 15).until(EC.staleness_of(primera_fila))
+            WebDriverWait(driver, 20).until(EC.staleness_of(primera_fila))
+            time.sleep(0.5)   # dar margen a que el AJAX termine de inyectar la nueva tabla
         else:
-            time.sleep(1)
+            time.sleep(2)
         pagina_num += 1
 
     return hallazgos, fecha_ultima, url_demanda, fecha_demanda, detalle_demanda
@@ -713,11 +714,18 @@ def _buscar_y_procesar(driver, num_expediente, anio_expediente):
 
     # Esperar que cargue la página del expediente: puede tener o no actuaciones.
     # El tab "Intervinientes" siempre aparece; action-table solo si hay actuaciones.
-    WebDriverWait(driver, 30).until(
-        lambda d: d.find_elements(By.ID, "expediente:action-table") or
-                  d.find_elements(By.XPATH,
-                      "//span[contains(@class,'rf-tab-lbl') and normalize-space()='Intervinientes']")
-    )
+    try:
+        WebDriverWait(driver, 30).until(
+            lambda d: d.find_elements(By.ID, "expediente:action-table") or
+                      d.find_elements(By.XPATH,
+                          "//span[contains(@class,'rf-tab-lbl') and normalize-space()='Intervinientes']")
+        )
+    except TimeoutException:
+        # Si seguimos en la página de búsqueda, el expediente no existe en PJN.
+        if driver.find_elements(By.ID, "formPublica:buscarPorNumeroButton"):
+            log("[Consulta] Expediente no encontrado en PJN (sin resultados). Se registra como 'No'.")
+            return (False, [], "", "", "", None, None, None, None)
+        raise
 
     jurisdiccion, juzgado, secretaria = extraer_jurisdiccion_dependencia(driver)
     log(f"[Jurisdiccion] {jurisdiccion} | {juzgado} | {secretaria}")
