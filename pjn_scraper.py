@@ -723,8 +723,7 @@ def _buscar_y_procesar(driver, num_expediente, anio_expediente):
     except TimeoutException:
         # Si seguimos en la página de búsqueda, el expediente no existe en PJN.
         if driver.find_elements(By.ID, "formPublica:buscarPorNumeroButton"):
-            log("[Consulta] Expediente no encontrado en PJN (sin resultados). Se registra como 'No'.")
-            return (False, [], "", "", "", None, None, None, None)
+            raise RuntimeError("Expediente no encontrado en PJN (sin resultados).")
         raise
 
     jurisdiccion, juzgado, secretaria = extraer_jurisdiccion_dependencia(driver)
