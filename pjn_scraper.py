@@ -191,9 +191,7 @@ def _procesar_tabla_completa(driver, tabla_id, seccion_nombre, buscar_frase=True
     hallazgos     = []
     frase_encontrada = False
     fecha_ultima  = None
-    url_demanda   = None
-    fecha_demanda = None
-    detalle_demanda = None
+    _demandas     = []  # acumula todas las filas que coinciden con demanda
 
     while True:
         log(f"[{seccion_nombre}] Procesando página {pagina_num}...")
@@ -252,12 +250,16 @@ def _procesar_tabla_completa(driver, tabla_id, seccion_nombre, buscar_frase=True
             if m:
                 fecha_ultima = m.group(0)
 
-            # Demanda más antigua (siempre; tabla va de reciente a antigua → última coincidencia = más antigua)
+            # Colectar TODAS las filas de demanda (todas las partes)
             if ("ESCRITO" in tipo_up and "DEMANDA" in det_up
                     and "DESISTE" not in det_up and info["viewer_url"]):
-                url_demanda     = info["viewer_url"]
-                fecha_demanda   = m.group(0) if m else None
-                detalle_demanda = info["detalle_raw"]
+                _pm = re.search(r'\(Parte\s+(\d+)\s+de\s+\d+\)', info["detalle_raw"], re.IGNORECASE)
+                _demandas.append({
+                    "url":    info["viewer_url"],
+                    "fecha":  m.group(0) if m else None,
+                    "detalle": info["detalle_raw"],
+                    "parte":  int(_pm.group(1)) if _pm else 0,
+                })
 
             # Descarga PDF para frase (solo si aún no fue encontrada)
             contenido = "No contiene documento adjunto para ver"
@@ -304,6 +306,17 @@ def _procesar_tabla_completa(driver, tabla_id, seccion_nombre, buscar_frase=True
             time.sleep(2)
         pagina_num += 1
 
+    # Consolidar todas las partes encontradas
+    if _demandas:
+        _dem_ord      = sorted(_demandas, key=lambda d: d["parte"])  # Parte 1 primero
+        url_demanda   = "|".join(d["url"] for d in _dem_ord)
+        fecha_demanda = _dem_ord[-1]["fecha"]  # la más antigua
+        detalle_demanda = re.sub(
+            r'\s*\(Parte\s+\d+\s+de\s+\d+\)', '', _dem_ord[0]["detalle"], flags=re.IGNORECASE
+        ).strip()
+    else:
+        url_demanda = fecha_demanda = detalle_demanda = None
+
     return hallazgos, fecha_ultima, url_demanda, fecha_demanda, detalle_demanda
 
 
@@ -346,10 +359,8 @@ def extraer_datos_inicio(driver, tabla_id):
       - url_demanda:   viewer URL del primer ESCRITO con DEMANDA (excluye DESISTE)
       - fecha_demanda: fecha de esa misma fila de demanda
     """
-    url_demanda = None
     fecha_ultima = None
-    fecha_demanda = None
-    detalle_demanda = None
+    _demandas    = []  # acumula todas las filas que coinciden con demanda
 
     while True:
         WebDriverWait(driver, 20).until(
@@ -365,15 +376,11 @@ def extraer_datos_inicio(driver, tabla_id):
                 if len(celdas) < 5:
                     continue
 
-                # Fecha: extraer solo el patrón DD/MM/YYYY (la celda puede tener label)
                 raw_fecha = celdas[2].text.strip()
                 m = re.search(r'\d{1,2}/\d{1,2}/\d{4}', raw_fecha)
                 if m:
                     fecha_ultima = m.group(0)
 
-                # Buscar demanda: la tabla va de más reciente a más antigua,
-                # por eso seguimos buscando en todas las páginas y pisamos
-                # con cada coincidencia — al final queda la más antigua.
                 tipo        = celdas[3].text.strip().upper()
                 detalle_raw = celdas[4].text.strip()
                 detalle     = detalle_raw.upper()
@@ -381,9 +388,13 @@ def extraer_datos_inicio(driver, tabla_id):
                     for a in celdas[0].find_elements(By.TAG_NAME, "a"):
                         href = a.get_attribute("href") or ""
                         if "viewer.seam" in href and "download=true" not in href:
-                            url_demanda     = href
-                            fecha_demanda   = m.group(0) if m else None
-                            detalle_demanda = detalle_raw
+                            _pm = re.search(r'\(Parte\s+(\d+)\s+de\s+\d+\)', detalle_raw, re.IGNORECASE)
+                            _demandas.append({
+                                "url":    href,
+                                "fecha":  m.group(0) if m else None,
+                                "detalle": detalle_raw,
+                                "parte":  int(_pm.group(1)) if _pm else 0,
+                            })
                             break
             except StaleElementReferenceException:
                 pass
@@ -395,6 +406,17 @@ def extraer_datos_inicio(driver, tabla_id):
         primera_fila = filas[0]
         btn_sig.click()
         WebDriverWait(driver, 15).until(EC.staleness_of(primera_fila))
+
+    # Consolidar todas las partes encontradas
+    if _demandas:
+        _dem_ord        = sorted(_demandas, key=lambda d: d["parte"])  # Parte 1 primero
+        url_demanda     = "|".join(d["url"] for d in _dem_ord)
+        fecha_demanda   = _dem_ord[-1]["fecha"]  # la más antigua
+        detalle_demanda = re.sub(
+            r'\s*\(Parte\s+\d+\s+de\s+\d+\)', '', _dem_ord[0]["detalle"], flags=re.IGNORECASE
+        ).strip()
+    else:
+        url_demanda = fecha_demanda = detalle_demanda = None
 
     return fecha_ultima, url_demanda, fecha_demanda, detalle_demanda
 

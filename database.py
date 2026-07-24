@@ -584,6 +584,25 @@ def obtener_pendientes_datos_inicio() -> list:
     return rows
 
 
+def obtener_con_partes_incompletas() -> list:
+    """Retorna expedientes cuyo detalle_demanda aún contiene '(Parte X de Y)',
+    es decir, que fueron scrapeados antes del fix multi-parte y solo tienen una parte guardada."""
+    con = _connect()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("""
+        SELECT id, numero, anio, caratula, detalle_demanda
+        FROM pjn_expedientes
+        WHERE detalle_demanda ~ '\\(Parte [0-9]+ de [0-9]+\\)'
+          AND url_demanda IS NOT NULL
+          AND url_demanda NOT IN ('NINGUNA', '')
+        ORDER BY id
+    """)
+    rows = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    con.close()
+    return rows
+
+
 def actualizar_datos_inicio(id: int, fecha_inicio: str, url_demanda: str,
                             fecha_demanda: str = None, detalle_demanda: str = None):
     """Actualiza fecha_inicio, url_demanda, fecha_demanda y detalle_demanda."""
