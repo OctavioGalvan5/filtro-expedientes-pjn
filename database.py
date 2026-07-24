@@ -620,6 +620,22 @@ def actualizar_datos_inicio(id: int, fecha_inicio: str, url_demanda: str,
     con.close()
 
 
+def actualizar_solo_demanda(id: int, url_demanda: str,
+                            fecha_demanda: str = None, detalle_demanda: str = None):
+    """Actualiza SOLO url_demanda, fecha_demanda y detalle_demanda — no toca fecha_inicio."""
+    con = _connect()
+    cur = con.cursor()
+    cur.execute(
+        """UPDATE pjn_expedientes
+           SET url_demanda = %s, fecha_demanda = %s, detalle_demanda = %s
+           WHERE id = %s""",
+        (url_demanda, fecha_demanda or None, detalle_demanda or None, id)
+    )
+    con.commit()
+    cur.close()
+    con.close()
+
+
 def eliminar_expediente(id: int):
     """Elimina un expediente y sus participantes/abogados en cascada."""
     con = _connect()

@@ -54,7 +54,7 @@ def extraer_datos_expediente(driver, num, anio):
         EC.presence_of_element_located((By.ID, "expediente:action-table"))
     )
 
-    fecha, url_demanda, fecha_demanda, detalle_demanda = scraper.extraer_datos_inicio(
+    _, url_demanda, fecha_demanda, detalle_demanda = scraper.extraer_datos_inicio(
         driver, "expediente:action-table"
     )
     log(f"[Actuaciones] Demanda: {'sí ('+str(url_demanda.count('|')+1)+' parte/s)' if url_demanda else 'no'}")
@@ -84,7 +84,7 @@ def extraer_datos_expediente(driver, num, anio):
     except Exception:
         log(f"[Historica] Error: {traceback.format_exc()}")
 
-    return fecha, url_demanda, fecha_demanda, detalle_demanda
+    return url_demanda, fecha_demanda, detalle_demanda
 
 
 def ejecutar_completar(lista, usuario, password, headless, on_progreso=None):
@@ -115,14 +115,14 @@ def ejecutar_completar(lista, usuario, password, headless, on_progreso=None):
         try:
             driver = scraper.inicializar_navegador(headless=headless)
             scraper._login_y_abrir_formulario(driver, usuario, password)
-            fecha, url_demanda, fecha_demanda, detalle_demanda = extraer_datos_expediente(
+            url_demanda, fecha_demanda, detalle_demanda = extraer_datos_expediente(
                 driver, num, anio
             )
 
             if url_demanda:
                 partes = url_demanda.count("|") + 1
-                db.actualizar_datos_inicio(
-                    exp["id"], fecha, url_demanda, fecha_demanda, detalle_demanda
+                db.actualizar_solo_demanda(
+                    exp["id"], url_demanda, fecha_demanda, detalle_demanda
                 )
                 log(f"[Guardado] {partes} parte(s) | detalle='{detalle_demanda}'")
             else:
