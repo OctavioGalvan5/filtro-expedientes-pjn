@@ -994,10 +994,22 @@
             <div class="section-header">Datos de la demanda</div>
             <div style="padding:20px;display:flex;flex-direction:column;gap:16px">
               <div class="form-group" style="gap:6px">
-                <label class="form-label">Objeto</label>
-                <textarea x-model="detalleObjeto" rows="5"
-                          class="inp" style="resize:none;line-height:1.5"
-                          placeholder="Describí el objeto de la demanda…"></textarea>
+                <label class="form-label">Categoría</label>
+                <select x-model="detalleCategoria" class="inp">
+                  <option value="">— Seleccionar categoría —</option>
+                  <option value="EJ">Ejecutivos (EJ)</option>
+                  <option value="CYC">Civil y Comercial (CYC)</option>
+                </select>
+              </div>
+              <div class="form-group" style="gap:6px">
+                <label class="form-label">Materia</label>
+                <select x-model="detalleMateria" class="inp">
+                  <option value="">— Seleccionar materia —</option>
+                  <option value="CY9">Acción meramente declarativa de inconstitucionalidad (CY9)</option>
+                  <option value="EJ12">Ejecuciones varias (EJ12)</option>
+                  <option value="EJ6">Ejecuciones Fiscal - A.F.I.P (EJ6)</option>
+                  <option value="CY8">Acción meramente declarativa de derecho (CY8)</option>
+                </select>
               </div>
               <div class="form-group" style="gap:6px">
                 <label class="form-label">Monto de la demanda</label>
@@ -1015,12 +1027,16 @@
               </button>
 
               <!-- Datos previos -->
-              <div x-show="expedienteDetalle?.objeto||expedienteDetalle?.monto_demanda"
+              <div x-show="expedienteDetalle?.categoria||expedienteDetalle?.materia||expedienteDetalle?.monto_demanda"
                    style="padding:14px;background:var(--brand-dim);border-radius:var(--radius);border:1px solid #a5c8db">
                 <div style="font-size:.65rem;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Registrado anteriormente</div>
-                <div x-show="expedienteDetalle?.objeto" style="font-size:.78rem;color:var(--text-2);margin-bottom:6px">
-                  <span style="font-weight:600;color:var(--text-1)">Objeto: </span>
-                  <span x-text="expedienteDetalle?.objeto"></span>
+                <div x-show="expedienteDetalle?.categoria" style="font-size:.78rem;color:var(--text-2);margin-bottom:6px">
+                  <span style="font-weight:600;color:var(--text-1)">Categoría: </span>
+                  <span x-text="expedienteDetalle?.categoria==='EJ'?'Ejecutivos (EJ)':expedienteDetalle?.categoria==='CYC'?'Civil y Comercial (CYC)':expedienteDetalle?.categoria"></span>
+                </div>
+                <div x-show="expedienteDetalle?.materia" style="font-size:.78rem;color:var(--text-2);margin-bottom:6px">
+                  <span style="font-weight:600;color:var(--text-1)">Materia: </span>
+                  <span x-text="expedienteDetalle?.materia"></span>
                 </div>
                 <div x-show="expedienteDetalle?.monto_demanda" style="font-size:.82rem;font-weight:700;color:var(--brand)">
                   <span style="font-weight:400;color:var(--text-2)">Monto: </span>
@@ -1284,7 +1300,7 @@ function app() {
 
     seleccionados: [], todosDelFiltro: false, asignarA: '', asignandoMasivo: false, usuariosLista: [],
 
-    expedienteDetalle: null, detalleObjeto: '', detalleMonto: '', guardandoDetalle: false, detalleGuardado: false,
+    expedienteDetalle: null, detalleCategoria: '', detalleMateria: '', detalleMonto: '', guardandoDetalle: false, detalleGuardado: false,
 
     usuarios: [], cargandoUsuarios: false, errorUsuario: '',
     nuevoUser: { username:'', password:'', role:'normal' },
@@ -1389,13 +1405,14 @@ function app() {
     getParte(exp,tipo){ const p=(exp.participantes||[]).find(p=>(p.tipo||'').toLowerCase().includes(tipo)); if(!p||!p.nombre) return '—'; return p.nombre.length>32?p.nombre.substring(0,32)+'…':p.nombre; },
 
     async verDetalle(id) {
-      this.expedienteDetalle=null; this.detalleObjeto=''; this.detalleMonto=''; this.detalleGuardado=false;
+      this.expedienteDetalle=null; this.detalleCategoria=''; this.detalleMateria=''; this.detalleMonto=''; this.detalleGuardado=false;
       this.vista='detalle'; this.cargando=true;
       try {
         const r=await this.apiFetch('/api/expedientes/'+id); if(!r) return;
         if(!r.ok){ alert('No se pudo cargar el expediente'); this.vista='expedientes'; return; }
         this.expedienteDetalle=await r.json();
-        this.detalleObjeto=this.expedienteDetalle.objeto||'';
+        this.detalleCategoria=this.expedienteDetalle.categoria||'';
+        this.detalleMateria=this.expedienteDetalle.materia||'';
         this.detalleMonto=this.expedienteDetalle.monto_demanda!=null?String(this.expedienteDetalle.monto_demanda):'';
       } catch(e){ console.error(e); }
       this.cargando=false;
@@ -1407,11 +1424,12 @@ function app() {
       try {
         const r=await this.apiFetch('/api/expedientes/'+this.expedienteDetalle.id,{
           method:'PATCH', headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({objeto:this.detalleObjeto||null,monto_demanda:this.detalleMonto!==''?parseFloat(this.detalleMonto):null})
+          body:JSON.stringify({categoria:this.detalleCategoria||null,materia:this.detalleMateria||null,monto_demanda:this.detalleMonto!==''?parseFloat(this.detalleMonto):null})
         });
         if(r&&r.ok){
           this.detalleGuardado=true;
-          this.expedienteDetalle.objeto=this.detalleObjeto||null;
+          this.expedienteDetalle.categoria=this.detalleCategoria||null;
+          this.expedienteDetalle.materia=this.detalleMateria||null;
           this.expedienteDetalle.monto_demanda=this.detalleMonto!==''?parseFloat(this.detalleMonto):null;
           setTimeout(()=>{ this.detalleGuardado=false; },3000);
         }

@@ -200,8 +200,9 @@ async def expediente_detalle(exp_id: int, current_user: dict = Depends(auth.get_
 
 
 class _PatchExpBody(BaseModel):
-    objeto: Optional[str] = None
+    categoria: Optional[str] = None
     monto_demanda: Optional[float] = None
+    materia: Optional[str] = None
 
 
 @app.patch("/api/expedientes/{exp_id}")
@@ -223,7 +224,7 @@ async def actualizar_expediente(
         cur.close(); con.close()
         if not row:
             raise HTTPException(403, "No tenés acceso a este expediente")
-    db.actualizar_objeto_monto(exp_id, body.objeto, body.monto_demanda)
+    db.actualizar_campos_expediente(exp_id, body.categoria, body.monto_demanda, body.materia)
     return {"ok": True}
 
 
@@ -490,7 +491,8 @@ async def exportar(
             "Secretaría":    e.get("secretaria", ""),
             "Actor":         actor,
             "Demandado":     demandado,
-            "Objeto":        e.get("objeto", ""),
+            "Categoría":     e.get("categoria", ""),
+            "Materia":       e.get("materia", ""),
             "Monto Demanda": e.get("monto_demanda", ""),
             "Fecha Análisis": (e.get("fecha_analisis") or "")[:10],
             "Fuente":        e.get("fuente", "Extractor PJN"),

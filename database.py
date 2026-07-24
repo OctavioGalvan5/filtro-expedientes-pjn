@@ -94,6 +94,27 @@ def inicializar_db():
     cur.execute(
         "ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS monto_demanda NUMERIC(15,2)"
     )
+    # Renombrar objeto → categoria (solo si objeto existe y categoria no)
+    cur.execute("""
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='pjn_expedientes' AND column_name='objeto'
+          ) AND NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='pjn_expedientes' AND column_name='categoria'
+          ) THEN
+            ALTER TABLE pjn_expedientes RENAME COLUMN objeto TO categoria;
+          END IF;
+        END $$;
+    """)
+    cur.execute(
+        "ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS categoria TEXT"
+    )
+    cur.execute(
+        "ALTER TABLE pjn_expedientes ADD COLUMN IF NOT EXISTS materia TEXT"
+    )
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS pjn_users (
@@ -718,12 +739,12 @@ def obtener_expediente_por_id(exp_id: int) -> dict | None:
     return exp
 
 
-def actualizar_objeto_monto(exp_id: int, objeto: str | None, monto_demanda: float | None):
+def actualizar_campos_expediente(exp_id: int, categoria: str | None, monto_demanda: float | None, materia: str | None):
     con = _connect()
     cur = con.cursor()
     cur.execute(
-        "UPDATE pjn_expedientes SET objeto=%s, monto_demanda=%s WHERE id=%s",
-        (objeto or None, monto_demanda, exp_id)
+        "UPDATE pjn_expedientes SET categoria=%s, monto_demanda=%s, materia=%s WHERE id=%s",
+        (categoria or None, monto_demanda, materia or None, exp_id)
     )
     con.commit(); cur.close(); con.close()
 
