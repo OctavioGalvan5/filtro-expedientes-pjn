@@ -1092,6 +1092,23 @@
               <button @click="crearTipoMovimiento()"
                       style="white-space:nowrap;padding:6px 11px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-2);cursor:pointer;font-size:.78rem"
                       title="Crear nuevo tipo">+ Tipo</button>
+              <button @click="gestionarTipos=!gestionarTipos"
+                      :style="gestionarTipos?'background:var(--brand-dim);color:var(--brand);border-color:var(--brand)':''"
+                      style="white-space:nowrap;padding:6px 11px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-2);cursor:pointer;font-size:.78rem"
+                      title="Gestionar tipos">⚙ Gestionar</button>
+            </div>
+            <!-- Panel gestión de tipos -->
+            <div x-show="gestionarTipos" style="margin-top:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+              <div style="padding:6px 10px;background:var(--bg-2);font-size:.68rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Tipos de movimiento</div>
+              <template x-for="t in tiposMovimiento" :key="t.id">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 12px;border-top:1px solid var(--border)">
+                  <span style="font-size:.82rem;color:var(--text-1)" x-text="t.nombre"></span>
+                  <button @click="eliminarTipoMovimiento(t.id)"
+                          style="padding:3px 9px;border-radius:5px;border:1px solid #c62828;background:rgba(198,40,40,.1);color:#ef9a9a;cursor:pointer;font-size:.72rem"
+                          title="Eliminar tipo">✕ Eliminar</button>
+                </div>
+              </template>
+              <div x-show="!tiposMovimiento.length" style="padding:10px 12px;font-size:.78rem;color:var(--text-3);font-style:italic">Sin tipos creados.</div>
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;flex:2;min-width:220px">
@@ -1389,7 +1406,7 @@ function app() {
     seleccionados: [], todosDelFiltro: false, asignarA: '', asignandoMasivo: false, usuariosLista: [],
 
     expedienteDetalle: null, detalleCategoria: '', detalleMateria: '', detalleMonto: '', guardandoDetalle: false, detalleGuardado: false,
-    tiposMovimiento: [], movimientos: [], movTipoId: '', movObservacion: '',
+    tiposMovimiento: [], movimientos: [], movTipoId: '', movObservacion: '', gestionarTipos: false,
 
     usuarios: [], cargandoUsuarios: false, errorUsuario: '',
     nuevoUser: { username:'', password:'', role:'normal' },
@@ -1517,6 +1534,15 @@ function app() {
         if(rm&&rm.ok) this.movimientos=await rm.json();
       } catch(e){ console.error(e); }
       this.cargando=false;
+    },
+
+    async eliminarTipoMovimiento(id) {
+      const t = this.tiposMovimiento.find(x=>x.id===id);
+      if(!t||!confirm(`¿Eliminar el tipo "${t.nombre}"?`)) return;
+      const r=await this.apiFetch('/api/tipos-movimiento/'+id,{method:'DELETE'});
+      if(r&&r.ok){ this.tiposMovimiento=this.tiposMovimiento.filter(x=>x.id!==id); if(this.movTipoId==id) this.movTipoId=''; }
+      else if(r&&r.status===409){ const d=await r.json(); alert(d.detail||'No se puede eliminar: tiene movimientos asociados.'); }
+      else alert('Error al eliminar el tipo.');
     },
 
     async crearTipoMovimiento() {

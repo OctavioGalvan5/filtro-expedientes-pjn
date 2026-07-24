@@ -264,6 +264,17 @@ async def post_tipo_movimiento(
     return db.crear_tipo_movimiento(body.nombre)
 
 
+@app.delete("/api/tipos-movimiento/{tipo_id}")
+async def delete_tipo_movimiento(tipo_id: int, _: dict = Depends(auth.get_current_user)):
+    try:
+        eliminado = db.eliminar_tipo_movimiento(tipo_id)
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+    if not eliminado:
+        raise HTTPException(404, "Tipo no encontrado")
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------------------
 # Movimientos de expediente
 # ---------------------------------------------------------------------------

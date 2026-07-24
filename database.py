@@ -5,6 +5,7 @@ Tablas propias con prefijo pjn_ para no interferir con tablas existentes.
 """
 
 import os
+from datetime import timedelta
 import psycopg2
 import psycopg2.extras
 
@@ -943,10 +944,14 @@ def obtener_movimientos(expediente_id: int) -> list:
         WHERE m.expediente_id = %s
         ORDER BY m.fecha_hora DESC
     """, (expediente_id,))
+    _ARG = timedelta(hours=-3)
     rows = []
     for r in cur.fetchall():
         d = dict(r)
-        d["fecha_hora"] = d["fecha_hora"].strftime("%d/%m/%Y %H:%M") if d["fecha_hora"] else ""
+        if d["fecha_hora"]:
+            d["fecha_hora"] = (d["fecha_hora"] + _ARG).strftime("%d/%m/%Y %H:%M")
+        else:
+            d["fecha_hora"] = ""
         rows.append(d)
     cur.close()
     con.close()
@@ -962,8 +967,28 @@ def agregar_movimiento(expediente_id: int, tipo_id: int, observacion: str, usuar
         RETURNING id, fecha_hora
     """, (expediente_id, tipo_id, observacion or None, usuario))
     row = dict(cur.fetchone())
-    row["fecha_hora"] = row["fecha_hora"].strftime("%d/%m/%Y %H:%M") if row["fecha_hora"] else ""
+    if row["fecha_hora"]:
+        row["fecha_hora"] = (row["fecha_hora"] + timedelta(hours=-3)).strftime("%d/%m/%Y %H:%M")
+    else:
+        row["fecha_hora"] = ""
     con.commit()
     cur.close()
     con.close()
     return row
+
+
+# ---------------------------------------------------------------------------
+def eliminar_tipo_movimiento(tipo_id: int) -> bool:
+    con = _connect()
+    cur = con.cursor()
+    try:
+        cur.execute("DELETE FROM pjn_tipos_movimiento WHERE id = %s", (tipo_id,))
+        deleted = cur.rowcount
+        con.commit()
+        return deleted > 0
+    except psycopg2.errors.ForeignKeyViolation:
+        con.rollback()
+        raise ValueError("El tipo tiene movimientos asociados y no puede eliminarse.")
+    finally:
+        cur.close()
+        con.close()
