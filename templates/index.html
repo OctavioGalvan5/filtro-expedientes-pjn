@@ -546,7 +546,7 @@
     </header>
 
     <!-- STAT CARDS -->
-    <div class="stats-row" x-show="vista==='expedientes'||vista==='abogados'">
+    <div class="stats-row" x-show="!cargando && (vista==='expedientes'||vista==='abogados')">
       <div class="stat-card"
            :class="filtroRes==='todos'&&vista==='expedientes'?'ring-brand':''"
            @click="if(vista==='expedientes'){filtroRes='todos';aplicarFiltros()}">
@@ -584,8 +584,9 @@
     </div>
 
     <!-- SPINNER -->
-    <div x-show="cargando" style="flex:1;display:flex;align-items:center;justify-content:center">
+    <div x-show="cargando" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px 0;width:100%">
       <div class="loading-ring"></div>
+      <span style="font-size:.82rem;color:var(--text-3);font-weight:500">Cargando datos...</span>
     </div>
 
     <!-- ═══ VISTA EXPEDIENTES ═══════════════════════════════════════════ -->
@@ -679,13 +680,13 @@
         </div>
 
         <!-- Participantes dropdowns -->
-        <div class="flex-row"
+        <div class="flex-row" style="flex-wrap:wrap;gap:8px"
              x-show="participantes.actor.length||participantes.demandado.length||participantes.tercero.length">
 
-          <div style="position:relative;flex:1" x-show="participantes.actor.length"
+          <div style="position:relative;min-width:140px" x-show="participantes.actor.length"
                @click.outside="if(dropdownAbierto==='actor')dropdownAbierto=null">
             <button @click="dropdownAbierto=dropdownAbierto==='actor'?null:'actor'"
-                    class="inp" style="width:100%;display:flex;justify-content:space-between;align-items:center;cursor:pointer"
+                    class="inp" style="width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer"
                     :style="filtroActores.length?'border-color:#93c5fd;background:#eff6ff':''">
               <span style="font-size:.75rem;color:var(--text-2)">Actores
                 <strong x-show="filtroActores.length" style="color:var(--brand)" x-text="'('+filtroActores.length+')'"></strong>
@@ -713,10 +714,10 @@
             </div>
           </div>
 
-          <div style="position:relative;flex:1" x-show="participantes.demandado.length"
+          <div style="position:relative;min-width:140px" x-show="participantes.demandado.length"
                @click.outside="if(dropdownAbierto==='demandado')dropdownAbierto=null">
             <button @click="dropdownAbierto=dropdownAbierto==='demandado'?null:'demandado'"
-                    class="inp" style="width:100%;display:flex;justify-content:space-between;align-items:center;cursor:pointer"
+                    class="inp" style="width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer"
                     :style="filtroDemandados.length?'border-color:#fca5a5;background:#fef2f2':''">
               <span style="font-size:.75rem;color:var(--text-2)">Demandados
                 <strong x-show="filtroDemandados.length" style="color:var(--red)" x-text="'('+filtroDemandados.length+')'"></strong>
@@ -744,10 +745,10 @@
             </div>
           </div>
 
-          <div style="position:relative;flex:1" x-show="participantes.tercero.length"
+          <div style="position:relative;min-width:140px" x-show="participantes.tercero.length"
                @click.outside="if(dropdownAbierto==='tercero')dropdownAbierto=null">
             <button @click="dropdownAbierto=dropdownAbierto==='tercero'?null:'tercero'"
-                    class="inp" style="width:100%;display:flex;justify-content:space-between;align-items:center;cursor:pointer"
+                    class="inp" style="width:100%;display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer"
                     :style="filtroTerceros.length?'border-color:#d8b4fe;background:#fdf4ff':''">
               <span style="font-size:.75rem;color:var(--text-2)">Terceros
                 <strong x-show="filtroTerceros.length" style="color:#7c3aed" x-text="'('+filtroTerceros.length+')'"></strong>
