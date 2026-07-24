@@ -11,7 +11,7 @@ WORKDIR /app
 COPY requirements_web.txt .
 RUN pip install --no-cache-dir -r requirements_web.txt
 
-COPY main.py database.py pjn_scraper.py ./
+COPY main.py database.py pjn_scraper.py auth.py ./
 COPY templates/ templates/
 
 ENV DOCKER_ENV=1
