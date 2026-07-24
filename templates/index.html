@@ -201,6 +201,7 @@
     .inp:focus { border-color: var(--brand); background: #fff; box-shadow: 0 0 0 3px rgba(12,69,102,.1); }
     select.inp { cursor: pointer; }
     .flex-row { display: flex; gap: 8px; align-items: center; }
+    .spinner-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
     /* ── Buttons ───────────────────────────────────────────────────────── */
     .btn {
@@ -584,7 +585,7 @@
     </div>
 
     <!-- SPINNER -->
-    <div x-show="cargando" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px 0;width:100%">
+    <div x-show="cargando" class="spinner-wrap" style="flex:1;gap:12px;padding:40px 0;width:100%">
       <div class="loading-ring"></div>
       <span style="font-size:.82rem;color:var(--text-3);font-weight:500">Cargando datos...</span>
     </div>
