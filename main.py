@@ -166,6 +166,9 @@ async def expedientes(
     fecha_hasta:  str = Query(default=""),
     asignado:     str = Query(default=""),
     asignado_a:   Optional[int] = Query(default=None),
+    sin_monto:    str = Query(default=""),
+    monto_min:    Optional[float] = Query(default=None),
+    monto_max:    Optional[float] = Query(default=None),
     current_user: dict = Depends(auth.get_current_user),
 ):
     def split(s): return [x.strip() for x in s.split(',') if x.strip()] if s else []
@@ -179,6 +182,7 @@ async def expedientes(
         user_id=uid,
         asignado=asignado if uid is None else "",
         asignado_a=asignado_a if uid is None else None,
+        sin_monto=bool(sin_monto), monto_min=monto_min, monto_max=monto_max,
     )
     return {"items": items, "total": total}
 

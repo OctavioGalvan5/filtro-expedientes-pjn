@@ -679,12 +679,32 @@
                     class="btn btn-ghost btn-sm">Limpiar</button>
           </div>
         </template>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button @click="filtroConDemanda=!filtroConDemanda;aplicarFiltros()"
                   class="btn btn-sm"
                   :class="filtroConDemanda?'btn-primary':'btn-ghost'">
             Con demanda
           </button>
+          <button @click="filtroSinMonto=!filtroSinMonto;filtroMontoMin='';filtroMontoMax='';aplicarFiltros()"
+                  class="btn btn-sm"
+                  :class="filtroSinMonto?'btn-primary':'btn-ghost'">
+            Sin monto
+          </button>
+          <div style="display:flex;align-items:center;gap:4px" x-show="!filtroSinMonto">
+            <span style="font-size:.7rem;color:var(--text-3);white-space:nowrap">Monto:</span>
+            <input type="number" x-model="filtroMontoMin" @input.debounce.500ms="aplicarFiltros()"
+                   placeholder="Mín" min="0" class="inp" style="width:90px;font-size:.75rem">
+            <span style="color:var(--border-dark);font-size:.8rem">—</span>
+            <input type="number" x-model="filtroMontoMax" @input.debounce.500ms="aplicarFiltros()"
+                   placeholder="Máx" min="0" class="inp" style="width:90px;font-size:.75rem">
+            <button x-show="filtroMontoMin||filtroMontoMax"
+                    @click="filtroMontoMin='';filtroMontoMax='';aplicarFiltros()"
+                    style="color:var(--text-3);border:none;background:none;cursor:pointer;padding:4px">
+              <svg style="width:13px;height:13px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
           <div style="display:flex;align-items:center;gap:6px;flex:1">
             <span style="font-size:.7rem;color:var(--text-3);white-space:nowrap">F. Inicio:</span>
             <input type="date" x-model="filtroFechaDesde" @change="aplicarFiltros()" class="inp" style="flex:1;font-size:.75rem">
@@ -1295,6 +1315,7 @@ function app() {
 
     filtroRes: 'todos', filtroTxt: '', filtroJuzgado: '', filtroSecretaria: '',
     filtroConDemanda: false, filtroFechaDesde: '', filtroFechaHasta: '',
+    filtroSinMonto: false, filtroMontoMin: '', filtroMontoMax: '',
     filtroAsignado: '', filtroAsignadoA: '',
     participantes: { actor:[], demandado:[], tercero:[] },
     filtroActores: [], filtroDemandados: [], filtroTerceros: [],
@@ -1374,6 +1395,9 @@ function app() {
       if(this.filtroConDemanda)   p.set('con_demanda','1');
       if(this.filtroFechaDesde)   p.set('fecha_desde',this.filtroFechaDesde);
       if(this.filtroFechaHasta)   p.set('fecha_hasta',this.filtroFechaHasta);
+      if(this.filtroSinMonto)     p.set('sin_monto','1');
+      if(this.filtroMontoMin)     p.set('monto_min',this.filtroMontoMin);
+      if(this.filtroMontoMax)     p.set('monto_max',this.filtroMontoMax);
       if(this.filtroAsignado)     p.set('asignado',this.filtroAsignado);
       if(this.filtroAsignadoA)    p.set('asignado_a',this.filtroAsignadoA);
       const r=await this.apiFetch('/api/expedientes?'+p); if(!r) return;
@@ -1515,6 +1539,9 @@ function app() {
       if(this.filtroConDemanda) p.set('con_demanda','1');
       if(this.filtroFechaDesde) p.set('fecha_desde',this.filtroFechaDesde);
       if(this.filtroFechaHasta) p.set('fecha_hasta',this.filtroFechaHasta);
+      if(this.filtroSinMonto)   p.set('sin_monto','1');
+      if(this.filtroMontoMin)   p.set('monto_min',this.filtroMontoMin);
+      if(this.filtroMontoMax)   p.set('monto_max',this.filtroMontoMax);
       if(this.filtroAsignado)   p.set('asignado',this.filtroAsignado);
       if(this.filtroAsignadoA)  p.set('asignado_a',this.filtroAsignadoA);
       if(this.token)            p.set('token',this.token);

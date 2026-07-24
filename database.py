@@ -405,7 +405,8 @@ def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "",
                       resultado: str = "", juzgado: str = "", secretaria: str = "",
                       actores: list = None, demandados: list = None, terceros: list = None,
                       con_demanda: bool = False, fecha_desde: str = "", fecha_hasta: str = "",
-                      user_id: int = None, asignado: str = "", asignado_a: int = None) -> tuple:
+                      user_id: int = None, asignado: str = "", asignado_a: int = None,
+                      sin_monto: bool = False, monto_min: float = None, monto_max: float = None) -> tuple:
     """
     Retorna (expedientes, total) para la página dada.
     expedientes: lista de dicts con participantes y abogados anidados.
@@ -465,6 +466,16 @@ def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "",
         conditions.append(
             "e.url_demanda IS NOT NULL AND e.url_demanda NOT IN ('NINGUNA', '')"
         )
+
+    if sin_monto:
+        conditions.append("e.monto_demanda IS NULL")
+    else:
+        if monto_min is not None:
+            conditions.append("e.monto_demanda IS NOT NULL AND e.monto_demanda >= %s")
+            params.append(monto_min)
+        if monto_max is not None:
+            conditions.append("e.monto_demanda IS NOT NULL AND e.monto_demanda <= %s")
+            params.append(monto_max)
 
     if fecha_desde:
         conditions.append(
