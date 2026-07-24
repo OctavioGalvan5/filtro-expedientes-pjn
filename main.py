@@ -169,6 +169,7 @@ async def expedientes(
     sin_monto:    str = Query(default=""),
     monto_min:    Optional[float] = Query(default=None),
     monto_max:    Optional[float] = Query(default=None),
+    estado:       str = Query(default=""),
     current_user: dict = Depends(auth.get_current_user),
 ):
     def split(s): return [x.strip() for x in s.split(',') if x.strip()] if s else []
@@ -183,6 +184,7 @@ async def expedientes(
         asignado=asignado if uid is None else "",
         asignado_a=asignado_a if uid is None else None,
         sin_monto=bool(sin_monto), monto_min=monto_min, monto_max=monto_max,
+        estado=estado,
     )
     return {"items": items, "total": total}
 
@@ -240,6 +242,14 @@ async def actualizar_expediente(
 @app.get("/api/participantes")
 async def participantes(_: dict = Depends(auth.get_current_user)):
     return db.obtener_participantes_por_tipo()
+
+
+# ---------------------------------------------------------------------------
+# Estados (último movimiento por expediente)
+# ---------------------------------------------------------------------------
+@app.get("/api/estados-movimiento")
+async def get_estados_movimiento(_: dict = Depends(auth.get_current_user)):
+    return db.obtener_estados_disponibles()
 
 
 # ---------------------------------------------------------------------------

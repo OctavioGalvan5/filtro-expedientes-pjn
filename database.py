@@ -425,7 +425,8 @@ def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "",
                       actores: list = None, demandados: list = None, terceros: list = None,
                       con_demanda: bool = False, fecha_desde: str = "", fecha_hasta: str = "",
                       user_id: int = None, asignado: str = "", asignado_a: int = None,
-                      sin_monto: bool = False, monto_min: float = None, monto_max: float = None) -> tuple:
+                      sin_monto: bool = False, monto_min: float = None, monto_max: float = None,
+                      estado: str = "") -> tuple:
     """
     Retorna (expedientes, total) para la página dada.
     expedientes: lista de dicts con participantes y abogados anidados.
@@ -533,13 +534,31 @@ def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "",
         )
         params.append(asignado_a)
 
+    if estado:
+        conditions.append("""
+            (SELECT t.nombre FROM pjn_movimientos m
+             JOIN pjn_tipos_movimiento t ON t.id = m.tipo_id
+             WHERE m.expediente_id = e.id
+             ORDER BY m.fecha_hora DESC LIMIT 1) = %s
+        """)
+        params.append(estado)
+
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
     cur.execute(f"SELECT COUNT(*) FROM pjn_expedientes e {where}", params)
     total = cur.fetchone()["count"]
 
+    _lateral = """
+        LEFT JOIN LATERAL (
+            SELECT t.nombre AS ultimo_movimiento
+            FROM pjn_movimientos m
+            JOIN pjn_tipos_movimiento t ON t.id = m.tipo_id
+            WHERE m.expediente_id = e.id
+            ORDER BY m.fecha_hora DESC LIMIT 1
+        ) ult ON true
+    """
     cur.execute(
-        f"SELECT e.* FROM pjn_expedientes e {where} ORDER BY e.id LIMIT %s OFFSET %s",
+        f"SELECT e.*, ult.ultimo_movimiento FROM pjn_expedientes e {_lateral} {where} ORDER BY e.id LIMIT %s OFFSET %s",
         params + [por_pagina, offset],
     )
     expedientes = cur.fetchall()
@@ -978,6 +997,26 @@ def agregar_movimiento(expediente_id: int, tipo_id: int, observacion: str, usuar
 
 
 # ---------------------------------------------------------------------------
+def obtener_estados_disponibles() -> list:
+    """Devuelve los nombres de tipos que son el último movimiento de al menos un expediente."""
+    con = _connect()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT DISTINCT t.nombre
+        FROM pjn_tipos_movimiento t
+        WHERE t.id IN (
+            SELECT DISTINCT ON (expediente_id) tipo_id
+            FROM pjn_movimientos
+            ORDER BY expediente_id, fecha_hora DESC
+        )
+        ORDER BY t.nombre
+    """)
+    rows = [r[0] for r in cur.fetchall()]
+    cur.close()
+    con.close()
+    return rows
+
+
 def eliminar_tipo_movimiento(tipo_id: int) -> bool:
     con = _connect()
     cur = con.cursor()

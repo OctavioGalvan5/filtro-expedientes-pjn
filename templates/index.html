@@ -705,6 +705,21 @@
               </svg>
             </button>
           </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:.7rem;color:var(--text-3);white-space:nowrap">Estado:</span>
+            <select x-model="filtroEstado" @change="aplicarFiltros()" class="inp" style="font-size:.75rem;min-width:140px">
+              <option value="">Todos</option>
+              <template x-for="e in estadosDisponibles" :key="e">
+                <option :value="e" x-text="e"></option>
+              </template>
+            </select>
+            <button x-show="filtroEstado" @click="filtroEstado='';aplicarFiltros()"
+                    style="color:var(--text-3);border:none;background:none;cursor:pointer;padding:4px">
+              <svg style="width:13px;height:13px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
           <div style="display:flex;align-items:center;gap:6px;flex:1">
             <span style="font-size:.7rem;color:var(--text-3);white-space:nowrap">F. Inicio:</span>
             <input type="date" x-model="filtroFechaDesde" @change="aplicarFiltros()" class="inp" style="flex:1;font-size:.75rem">
@@ -844,6 +859,7 @@
               <th style="text-align:center">Resultado</th>
               <th style="text-align:center">F. Inicio</th>
               <th style="text-align:center">Demanda</th>
+              <th style="text-align:left">Estado</th>
               <template x-if="currentUser?.role==='admin'">
                 <th style="width:36px"></th>
               </template>
@@ -890,6 +906,12 @@
                     </template>
                   </div>
                   <span x-show="!exp.url_demanda||exp.url_demanda==='NINGUNA'" style="color:var(--border-dark);font-size:.75rem">—</span>
+                </td>
+                <td>
+                  <span x-show="exp.ultimo_movimiento"
+                        style="display:inline-block;padding:2px 8px;border-radius:5px;font-size:.68rem;font-weight:600;background:rgba(99,102,241,.12);color:#6366f1;white-space:nowrap"
+                        x-text="exp.ultimo_movimiento"></span>
+                  <span x-show="!exp.ultimo_movimiento" style="color:var(--border-dark);font-size:.75rem">—</span>
                 </td>
                 <template x-if="currentUser?.role==='admin'">
                   <td style="text-align:center" @click.stop>
@@ -944,6 +966,9 @@
             <span class="badge"
                   :class="{'badge-si':expedienteDetalle?.caja_se_presenta==='Si','badge-no':expedienteDetalle?.caja_se_presenta==='No','badge-err':!['Si','No'].includes(expedienteDetalle?.caja_se_presenta||'')}"
                   x-text="'Caja: '+(expedienteDetalle?.caja_se_presenta||'—')"></span>
+            <span x-show="expedienteDetalle?.ultimo_movimiento"
+                  style="display:inline-block;padding:3px 10px;border-radius:6px;font-size:.72rem;font-weight:700;background:rgba(99,102,241,.15);color:#6366f1;letter-spacing:.2px"
+                  x-text="expedienteDetalle?.ultimo_movimiento"></span>
           </div>
           <p style="color:var(--text-2);margin:6px 0 0;font-size:.85rem" x-text="expedienteDetalle?.caratula||'—'"></p>
         </div>
@@ -1396,6 +1421,7 @@ function app() {
     filtroRes: 'todos', filtroTxt: '', filtroJuzgado: '', filtroSecretaria: '',
     filtroConDemanda: false, filtroFechaDesde: '', filtroFechaHasta: '',
     filtroSinMonto: false, filtroMontoMin: '', filtroMontoMax: '',
+    filtroEstado: '', estadosDisponibles: [],
     filtroAsignado: '', filtroAsignadoA: '',
     participantes: { actor:[], demandado:[], tercero:[] },
     filtroActores: [], filtroDemandados: [], filtroTerceros: [],
@@ -1457,7 +1483,7 @@ function app() {
       this.cargando=true; this.panelDer=null;
       try {
         const r=await this.apiFetch('/api/stats'); if(r) this.stats=await r.json();
-        await this.cargarExpedientes();
+        await Promise.all([this.cargarExpedientes(), this.cargarEstados()]);
         const rp=await this.apiFetch('/api/participantes'); if(rp) this.participantes=await rp.json();
         if(this.currentUser?.role==='admin') await this.cargarUsuariosLista();
       } catch(e){ console.error(e); }
@@ -1481,8 +1507,14 @@ function app() {
       if(this.filtroMontoMax)     p.set('monto_max',this.filtroMontoMax);
       if(this.filtroAsignado)     p.set('asignado',this.filtroAsignado);
       if(this.filtroAsignadoA)    p.set('asignado_a',this.filtroAsignadoA);
+      if(this.filtroEstado)       p.set('estado',this.filtroEstado);
       const r=await this.apiFetch('/api/expedientes?'+p); if(!r) return;
       const d=await r.json(); this.expedientesPagina=d.items; this.totalExp=d.total;
+    },
+
+    async cargarEstados() {
+      const r=await this.apiFetch('/api/estados-movimiento');
+      if(r&&r.ok) this.estadosDisponibles=await r.json();
     },
 
     async cargarAbogados() {
@@ -1559,8 +1591,13 @@ function app() {
         body:JSON.stringify({tipo_id:parseInt(this.movTipoId),observacion:this.movObservacion||null})
       });
       if(r&&r.ok){
-        const rm=await this.apiFetch('/api/expedientes/'+this.expedienteDetalle.id+'/movimientos');
+        const [rm, re] = await Promise.all([
+          this.apiFetch('/api/expedientes/'+this.expedienteDetalle.id+'/movimientos'),
+          this.apiFetch('/api/estados-movimiento'),
+        ]);
         if(rm&&rm.ok) this.movimientos=await rm.json();
+        if(re&&re.ok) this.estadosDisponibles=await re.json();
+        if(this.movimientos.length) this.expedienteDetalle.ultimo_movimiento=this.movimientos[0].tipo;
         this.movTipoId=''; this.movObservacion='';
       }
     },
