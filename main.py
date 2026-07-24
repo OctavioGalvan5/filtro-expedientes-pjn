@@ -242,6 +242,53 @@ async def participantes(_: dict = Depends(auth.get_current_user)):
     return db.obtener_participantes_por_tipo()
 
 
+# ---------------------------------------------------------------------------
+# Tipos de movimiento
+# ---------------------------------------------------------------------------
+@app.get("/api/tipos-movimiento")
+async def get_tipos_movimiento(_: dict = Depends(auth.get_current_user)):
+    return db.obtener_tipos_movimiento()
+
+
+class _TipoMovBody(BaseModel):
+    nombre: str
+
+
+@app.post("/api/tipos-movimiento")
+async def post_tipo_movimiento(
+    body: _TipoMovBody,
+    _: dict = Depends(auth.get_current_user),
+):
+    if not body.nombre.strip():
+        raise HTTPException(400, "El nombre no puede estar vacío")
+    return db.crear_tipo_movimiento(body.nombre)
+
+
+# ---------------------------------------------------------------------------
+# Movimientos de expediente
+# ---------------------------------------------------------------------------
+@app.get("/api/expedientes/{exp_id}/movimientos")
+async def get_movimientos(exp_id: int, _: dict = Depends(auth.get_current_user)):
+    return db.obtener_movimientos(exp_id)
+
+
+class _MovBody(BaseModel):
+    tipo_id: int
+    observacion: Optional[str] = None
+
+
+@app.post("/api/expedientes/{exp_id}/movimientos")
+async def post_movimiento(
+    exp_id: int,
+    body: _MovBody,
+    current_user: dict = Depends(auth.get_current_user),
+):
+    row = db.agregar_movimiento(
+        exp_id, body.tipo_id, body.observacion or "", current_user["username"]
+    )
+    return row
+
+
 @app.get("/api/abogados")
 async def abogados(
     filtro_ab:         str = Query(default=""),

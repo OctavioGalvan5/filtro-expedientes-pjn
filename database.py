@@ -157,6 +157,24 @@ def inicializar_db():
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS pjn_tipos_movimiento (
+            id         SERIAL PRIMARY KEY,
+            nombre     TEXT NOT NULL UNIQUE
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS pjn_movimientos (
+            id            SERIAL PRIMARY KEY,
+            expediente_id INTEGER NOT NULL REFERENCES pjn_expedientes(id) ON DELETE CASCADE,
+            tipo_id       INTEGER NOT NULL REFERENCES pjn_tipos_movimiento(id),
+            observacion   TEXT,
+            usuario       TEXT,
+            fecha_hora    TIMESTAMP DEFAULT NOW()
+        )
+    """)
+
     con.commit()
     cur.close()
     con.close()
@@ -881,3 +899,71 @@ def guardar_expediente(numero: str, anio: str, caratula: str,
     con.commit()
     cur.close()
     con.close()
+
+
+# ---------------------------------------------------------------------------
+# Tipos de movimiento
+# ---------------------------------------------------------------------------
+def obtener_tipos_movimiento() -> list:
+    con = _connect()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT id, nombre FROM pjn_tipos_movimiento ORDER BY nombre")
+    rows = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    con.close()
+    return rows
+
+
+def crear_tipo_movimiento(nombre: str) -> dict:
+    con = _connect()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(
+        "INSERT INTO pjn_tipos_movimiento (nombre) VALUES (%s) "
+        "ON CONFLICT (nombre) DO UPDATE SET nombre=EXCLUDED.nombre RETURNING id, nombre",
+        (nombre.strip(),)
+    )
+    row = dict(cur.fetchone())
+    con.commit()
+    cur.close()
+    con.close()
+    return row
+
+
+# ---------------------------------------------------------------------------
+# Movimientos de expediente
+# ---------------------------------------------------------------------------
+def obtener_movimientos(expediente_id: int) -> list:
+    con = _connect()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("""
+        SELECT m.id, m.observacion, m.usuario, m.fecha_hora,
+               t.nombre AS tipo
+        FROM pjn_movimientos m
+        JOIN pjn_tipos_movimiento t ON t.id = m.tipo_id
+        WHERE m.expediente_id = %s
+        ORDER BY m.fecha_hora DESC
+    """, (expediente_id,))
+    rows = []
+    for r in cur.fetchall():
+        d = dict(r)
+        d["fecha_hora"] = d["fecha_hora"].strftime("%d/%m/%Y %H:%M") if d["fecha_hora"] else ""
+        rows.append(d)
+    cur.close()
+    con.close()
+    return rows
+
+
+def agregar_movimiento(expediente_id: int, tipo_id: int, observacion: str, usuario: str) -> dict:
+    con = _connect()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("""
+        INSERT INTO pjn_movimientos (expediente_id, tipo_id, observacion, usuario)
+        VALUES (%s, %s, %s, %s)
+        RETURNING id, fecha_hora
+    """, (expediente_id, tipo_id, observacion or None, usuario))
+    row = dict(cur.fetchone())
+    row["fecha_hora"] = row["fecha_hora"].strftime("%d/%m/%Y %H:%M") if row["fecha_hora"] else ""
+    con.commit()
+    cur.close()
+    con.close()
+    return row
