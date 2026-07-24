@@ -855,22 +855,20 @@
                 </td>
                 <td style="text-align:center;font-size:.75rem;color:var(--text-2)" class="mono" x-text="exp.fecha_inicio||'—'"></td>
                 <td style="text-align:center" @click.stop>
-                  <template x-if="exp.url_demanda&&exp.url_demanda!=='NINGUNA'">
-                    <div style="display:flex;gap:3px;justify-content:center;flex-wrap:wrap">
-                      <template x-for="(url,i) in exp.url_demanda.split('|').filter(u=>u&&u!=='NINGUNA')" :key="i">
-                        <a :href="url" target="_blank"
-                           :title="'Demanda — Parte '+(i+1)"
-                           style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-3);transition:all 140ms;text-decoration:none"
-                           onmouseover="this.style.background='var(--brand-dim)';this.style.borderColor='#a5c8db';this.style.color='var(--brand)'"
-                           onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">
-                          <svg style="width:13px;height:13px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                          </svg>
-                        </a>
-                      </template>
-                    </div>
-                  </template>
+                  <div x-show="exp.url_demanda&&exp.url_demanda!=='NINGUNA'" style="display:flex;gap:3px;justify-content:center;flex-wrap:wrap">
+                    <template x-for="(url,i) in (exp.url_demanda||'').split('|').filter(u=>u&&u!=='NINGUNA')" :key="i">
+                      <a :href="url" target="_blank"
+                         :title="'Demanda — Parte '+(i+1)"
+                         style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-3);transition:all 140ms;text-decoration:none"
+                         onmouseover="this.style.background='var(--brand-dim)';this.style.borderColor='#a5c8db';this.style.color='var(--brand)'"
+                         onmouseout="this.style.background='var(--bg)';this.style.borderColor='var(--border)';this.style.color='var(--text-3)'">
+                        <svg style="width:13px;height:13px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                      </a>
+                    </template>
+                  </div>
                   <span x-show="!exp.url_demanda||exp.url_demanda==='NINGUNA'" style="color:var(--border-dark);font-size:.75rem">—</span>
                 </td>
                 <template x-if="currentUser?.role==='admin'">
@@ -965,10 +963,10 @@
                 <span class="info-label">Detalle</span>
                 <span class="info-val" style="font-size:.78rem;line-height:1.5" x-text="expedienteDetalle?.detalle_demanda"></span>
               </div>
-              <template x-if="expedienteDetalle?.url_demanda&&expedienteDetalle?.url_demanda!=='NINGUNA'">
-                <template x-for="(url,i) in expedienteDetalle.url_demanda.split('|').filter(u=>u&&u!=='NINGUNA')" :key="i">
+              <div x-show="expedienteDetalle?.url_demanda&&expedienteDetalle?.url_demanda!=='NINGUNA'">
+                <template x-for="(url,i) in (expedienteDetalle?.url_demanda||'').split('|').filter(u=>u&&u!=='NINGUNA')" :key="i">
                   <div class="info-row">
-                    <span class="info-label" x-text="expedienteDetalle.url_demanda.split('|').filter(u=>u&&u!=='NINGUNA').length>1?'Demanda '+(i+1):'Demanda'"></span>
+                    <span class="info-label" x-text="(expedienteDetalle?.url_demanda||'').split('|').filter(u=>u&&u!=='NINGUNA').length>1?'Demanda '+(i+1):'Demanda'"></span>
                     <a :href="url" target="_blank"
                        style="color:var(--brand);font-size:.78rem;display:flex;align-items:center;gap:4px;text-decoration:none">
                       <svg style="width:13px;height:13px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -978,7 +976,7 @@
                     </a>
                   </div>
                 </template>
-              </template>
+              </div>
             </div>
           </div>
 
