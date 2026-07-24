@@ -1000,56 +1000,6 @@
             </div>
           </div>
 
-          <!-- Movimientos -->
-          <div>
-            <div style="font-size:.68rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">
-              Movimientos
-            </div>
-
-            <!-- Formulario agregar -->
-            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
-              <div style="display:flex;gap:6px;align-items:center">
-                <select x-model="movTipoId" class="inp" style="flex:1;font-size:.78rem">
-                  <option value="">— Seleccioná tipo —</option>
-                  <template x-for="t in tiposMovimiento" :key="t.id">
-                    <option :value="t.id" x-text="t.nombre"></option>
-                  </template>
-                </select>
-                <button @click="crearTipoMovimiento()"
-                        style="white-space:nowrap;font-size:.75rem;padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-2);cursor:pointer"
-                        title="Crear nuevo tipo">
-                  + Tipo
-                </button>
-              </div>
-              <textarea x-model="movObservacion" placeholder="Observación (opcional)"
-                        class="inp" rows="2"
-                        style="font-size:.78rem;resize:vertical"></textarea>
-              <button @click="agregarMovimiento()"
-                      :disabled="!movTipoId"
-                      class="btn btn-primary btn-sm"
-                      style="align-self:flex-end">
-                Agregar movimiento
-              </button>
-            </div>
-
-            <!-- Historial -->
-            <div x-show="(movimientos||[]).length===0" style="font-size:.75rem;color:var(--text-3);font-style:italic">
-              Sin movimientos registrados.
-            </div>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              <template x-for="mov in (movimientos||[])" :key="mov.id">
-                <div style="padding:8px 10px;border-radius:8px;background:var(--bg-2);border:1px solid var(--border)">
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-                    <span style="font-size:.78rem;font-weight:600;color:var(--text-1)" x-text="mov.tipo"></span>
-                    <span style="font-size:.7rem;color:var(--text-3);white-space:nowrap" x-text="mov.fecha_hora"></span>
-                  </div>
-                  <div x-show="mov.observacion" style="font-size:.75rem;color:var(--text-2);margin-top:3px" x-text="mov.observacion"></div>
-                  <div style="font-size:.68rem;color:var(--text-3);margin-top:3px" x-text="mov.usuario"></div>
-                </div>
-              </template>
-            </div>
-          </div>
-
           <!-- Participantes -->
           <div>
             <div style="font-size:.68rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">
@@ -1118,6 +1068,69 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ── Movimientos (full-width) ───────────────────────────────────── -->
+      <div class="card" style="margin-top:20px">
+        <div class="section-header" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Movimientos</span>
+          <span style="font-size:.72rem;font-weight:400;color:var(--text-3)" x-text="(movimientos||[]).length + ' registro' + ((movimientos||[]).length!==1?'s':'')"></span>
+        </div>
+
+        <!-- Formulario -->
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px">
+            <label style="font-size:.68rem;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Tipo</label>
+            <div style="display:flex;gap:6px">
+              <select x-model="movTipoId" class="inp" style="flex:1">
+                <option value="">— Seleccioná —</option>
+                <template x-for="t in tiposMovimiento" :key="t.id">
+                  <option :value="t.id" x-text="t.nombre"></option>
+                </template>
+              </select>
+              <button @click="crearTipoMovimiento()"
+                      style="white-space:nowrap;padding:6px 11px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text-2);cursor:pointer;font-size:.78rem"
+                      title="Crear nuevo tipo">+ Tipo</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex:2;min-width:220px">
+            <label style="font-size:.68rem;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px">Observación</label>
+            <input x-model="movObservacion" class="inp" placeholder="Opcional…" style="width:100%">
+          </div>
+          <button @click="agregarMovimiento()"
+                  :disabled="!movTipoId"
+                  class="btn btn-primary"
+                  style="padding:8px 20px;white-space:nowrap">
+            + Agregar
+          </button>
+        </div>
+
+        <!-- Tabla historial -->
+        <div class="tbl-wrap" style="max-height:320px;overflow-y:auto">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="text-align:left;width:180px">Tipo</th>
+                <th style="text-align:left;width:160px">Fecha / Hora</th>
+                <th style="text-align:left">Observación</th>
+                <th style="text-align:left;width:150px">Usuario</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr x-show="!(movimientos||[]).length">
+                <td colspan="4" style="text-align:center;color:var(--text-3);font-style:italic;padding:24px">Sin movimientos registrados</td>
+              </tr>
+              <template x-for="mov in (movimientos||[])" :key="mov.id">
+                <tr>
+                  <td style="font-weight:600;color:var(--text-1)" x-text="mov.tipo"></td>
+                  <td class="mono" style="font-size:.73rem;color:var(--text-3)" x-text="mov.fecha_hora"></td>
+                  <td style="color:var(--text-2);font-size:.82rem" x-text="mov.observacion||'—'"></td>
+                  <td style="font-size:.78rem;color:var(--text-3)" x-text="mov.usuario||'—'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
