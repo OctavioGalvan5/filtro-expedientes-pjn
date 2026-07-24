@@ -625,7 +625,7 @@
 
       <!-- Filters -->
       <div class="filters-bar">
-        <div style="display:flex;gap:8px;align-items:center">
+        <div class="flex-row">
           <select x-model="filtroRes" @change="aplicarFiltros()" class="inp">
             <option value="todos">Todos los resultados</option>
             <option value="Si">✓  Se presenta</option>
@@ -659,6 +659,26 @@
                  placeholder="Buscar número, carátula, parte, abogado…"
                  @input.debounce.400ms="aplicarFiltros()">
         </div>
+
+        <!-- Filtro asignación (solo admin) -->
+        <template x-if="currentUser?.role==='admin'">
+          <div class="flex-row">
+            <select x-model="filtroAsignado" @change="aplicarFiltros()" class="inp">
+              <option value="">Todos (asignados y no)</option>
+              <option value="si">Solo asignados</option>
+              <option value="no">Sin asignar</option>
+            </select>
+            <select x-model="filtroAsignadoA" @change="aplicarFiltros()" class="inp" style="flex:1">
+              <option value="">— Filtrar por usuario —</option>
+              <template x-for="u in usuariosLista.filter(u=>u.role!=='admin')" :key="u.id">
+                <option :value="u.id" x-text="u.username"></option>
+              </template>
+            </select>
+            <button x-show="filtroAsignado||filtroAsignadoA"
+                    @click="filtroAsignado='';filtroAsignadoA='';aplicarFiltros()"
+                    class="btn btn-ghost btn-sm">Limpiar</button>
+          </div>
+        </template>
         <div style="display:flex;gap:8px;align-items:center">
           <button @click="filtroConDemanda=!filtroConDemanda;aplicarFiltros()"
                   class="btn btn-sm"
@@ -1267,6 +1287,7 @@ function app() {
 
     filtroRes: 'todos', filtroTxt: '', filtroJuzgado: '', filtroSecretaria: '',
     filtroConDemanda: false, filtroFechaDesde: '', filtroFechaHasta: '',
+    filtroAsignado: '', filtroAsignadoA: '',
     participantes: { actor:[], demandado:[], tercero:[] },
     filtroActores: [], filtroDemandados: [], filtroTerceros: [],
     dropdownAbierto: null, buscarPart: { actor:'', demandado:'', tercero:'' },
@@ -1345,6 +1366,8 @@ function app() {
       if(this.filtroConDemanda)   p.set('con_demanda','1');
       if(this.filtroFechaDesde)   p.set('fecha_desde',this.filtroFechaDesde);
       if(this.filtroFechaHasta)   p.set('fecha_hasta',this.filtroFechaHasta);
+      if(this.filtroAsignado)     p.set('asignado',this.filtroAsignado);
+      if(this.filtroAsignadoA)    p.set('asignado_a',this.filtroAsignadoA);
       const r=await this.apiFetch('/api/expedientes?'+p); if(!r) return;
       const d=await r.json(); this.expedientesPagina=d.items; this.totalExp=d.total;
     },
@@ -1484,6 +1507,8 @@ function app() {
       if(this.filtroConDemanda) p.set('con_demanda','1');
       if(this.filtroFechaDesde) p.set('fecha_desde',this.filtroFechaDesde);
       if(this.filtroFechaHasta) p.set('fecha_hasta',this.filtroFechaHasta);
+      if(this.filtroAsignado)   p.set('asignado',this.filtroAsignado);
+      if(this.filtroAsignadoA)  p.set('asignado_a',this.filtroAsignadoA);
       if(this.token)            p.set('token',this.token);
       window.location.href='/api/exportar?'+p;
     },

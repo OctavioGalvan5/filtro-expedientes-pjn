@@ -164,16 +164,21 @@ async def expedientes(
     con_demanda:  str = Query(default=""),
     fecha_desde:  str = Query(default=""),
     fecha_hasta:  str = Query(default=""),
+    asignado:     str = Query(default=""),
+    asignado_a:   Optional[int] = Query(default=None),
     current_user: dict = Depends(auth.get_current_user),
 ):
     def split(s): return [x.strip() for x in s.split(',') if x.strip()] if s else []
+    uid = _uid(current_user)
     items, total = db.obtener_paginados(
         pagina, por_pagina,
         filtro=busqueda, resultado=resultado,
         juzgado=juzgado, secretaria=secretaria,
         actores=split(actores), demandados=split(demandados), terceros=split(terceros),
         con_demanda=bool(con_demanda), fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
-        user_id=_uid(current_user),
+        user_id=uid,
+        asignado=asignado if uid is None else "",
+        asignado_a=asignado_a if uid is None else None,
     )
     return {"items": items, "total": total}
 
@@ -390,6 +395,8 @@ async def exportar(
     con_demanda: str = Query(default=""),
     fecha_desde: str = Query(default=""),
     fecha_hasta: str = Query(default=""),
+    asignado: str = Query(default=""),
+    asignado_a: Optional[int] = Query(default=None),
     token: Optional[str] = Query(default=None),
     current_user: Optional[dict] = Depends(auth.get_current_user_optional),
 ):
@@ -403,9 +410,18 @@ async def exportar(
     actores_list = split(actores)
     demandados_list = split(demandados)
     terceros_list = split(terceros)
+    uid = _uid(current_user)
 
-    expedientes = db.obtener_todos() if current_user["role"] == "admin" else \
-        db.obtener_paginados(1, 999999, user_id=current_user["user_id"])[0]
+    expedientes = db.obtener_paginados(
+        1, 999999,
+        filtro=busqueda, resultado=resultado if resultado != "todos" else "",
+        juzgado=juzgado, secretaria=secretaria,
+        actores=actores_list, demandados=demandados_list, terceros=terceros_list,
+        con_demanda=bool(con_demanda), fecha_desde=fecha_desde, fecha_hasta=fecha_hasta,
+        user_id=uid,
+        asignado=asignado if uid is None else "",
+        asignado_a=asignado_a if uid is None else None,
+    )[0]
 
     # ── Filtros de expedientes ──────────────────────────────────────────────
     if resultado in ("Si", "No"):

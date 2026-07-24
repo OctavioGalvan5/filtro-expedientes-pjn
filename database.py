@@ -405,7 +405,7 @@ def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "",
                       resultado: str = "", juzgado: str = "", secretaria: str = "",
                       actores: list = None, demandados: list = None, terceros: list = None,
                       con_demanda: bool = False, fecha_desde: str = "", fecha_hasta: str = "",
-                      user_id: int = None) -> tuple:
+                      user_id: int = None, asignado: str = "", asignado_a: int = None) -> tuple:
     """
     Retorna (expedientes, total) para la página dada.
     expedientes: lista de dicts con participantes y abogados anidados.
@@ -487,6 +487,21 @@ def obtener_paginados(pagina: int, por_pagina: int, filtro: str = "",
             "EXISTS (SELECT 1 FROM pjn_asignaciones sa WHERE sa.expediente_id = e.id AND sa.user_id = %s)"
         )
         params.append(user_id)
+
+    if asignado == "si":
+        conditions.append(
+            "EXISTS (SELECT 1 FROM pjn_asignaciones sa WHERE sa.expediente_id = e.id)"
+        )
+    elif asignado == "no":
+        conditions.append(
+            "NOT EXISTS (SELECT 1 FROM pjn_asignaciones sa WHERE sa.expediente_id = e.id)"
+        )
+
+    if asignado_a is not None:
+        conditions.append(
+            "EXISTS (SELECT 1 FROM pjn_asignaciones sa WHERE sa.expediente_id = e.id AND sa.user_id = %s)"
+        )
+        params.append(asignado_a)
 
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
