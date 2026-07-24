@@ -200,6 +200,7 @@
     .inp::placeholder { color: var(--text-3); }
     .inp:focus { border-color: var(--brand); background: #fff; box-shadow: 0 0 0 3px rgba(12,69,102,.1); }
     select.inp { cursor: pointer; }
+    .flex-row { display: flex; gap: 8px; align-items: center; }
 
     /* ── Buttons ───────────────────────────────────────────────────────── */
     .btn {
@@ -678,7 +679,7 @@
         </div>
 
         <!-- Participantes dropdowns -->
-        <div style="display:flex;gap:8px;align-items:center"
+        <div class="flex-row"
              x-show="participantes.actor.length||participantes.demandado.length||participantes.tercero.length">
 
           <div style="position:relative;flex:1" x-show="participantes.actor.length"
